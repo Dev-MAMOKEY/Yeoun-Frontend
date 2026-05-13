@@ -39,12 +39,12 @@ export default function Signup() {
   return (
     <PageLayout className="flex flex-col gap-[14px] items-start px-6 pt-6 pb-10">
       <div className="flex items-end px-5 w-full">
-        <h1 className="text-[#474741] text-[18px] font-semibold tracking-[0.7px]">회원가입</h1>
+        <h1 className="text-foreground text-[18px] font-semibold tracking-brand">회원가입</h1>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white flex flex-col gap-[18px] items-center px-5 py-[30px] rounded-[10px] w-full"
+        className="bg-white flex flex-col gap-[18px] items-center px-5 py-[30px] rounded-sheet w-full"
       >
         <FormField
           label="이름"
@@ -83,7 +83,7 @@ export default function Signup() {
         />
 
         <div className="flex flex-col gap-[10px] items-start w-full">
-          <div className="pl-3 text-[#474741] text-[16px] font-semibold tracking-[0.7px] w-full">사별 시점</div>
+          <div className="pl-3 text-foreground text-[16px] font-semibold tracking-brand w-full">사별 시점</div>
 
           <div className="flex gap-[10px] items-center w-full">
             {[
@@ -96,11 +96,11 @@ export default function Signup() {
                   name={name}
                   value={form[name as keyof typeof form] as string}
                   onChange={handleChange}
-                  className="bg-[#f4f3f1] appearance-none px-5 py-[10px] rounded-[6px] w-full text-[16px] tracking-[0.7px] text-[#a3a3a3] outline-none cursor-pointer"
+                  className="bg-surface appearance-none px-5 py-[10px] rounded-card w-full text-[16px] tracking-brand text-placeholder outline-none cursor-pointer"
                 >
                   <option value="" disabled>{placeholder}</option>
                   {options.map((o) => (
-                    <option key={o} value={o} className="text-[#474741]">{o}</option>
+                    <option key={o} value={o} className="text-foreground">{o}</option>
                   ))}
                 </select>
                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
@@ -110,8 +110,8 @@ export default function Signup() {
             ))}
           </div>
 
-          <label className="flex items-center justify-between bg-[#f4f3f1] px-5 py-[10px] rounded-[6px] w-full cursor-pointer">
-            <span className="text-[#a3a3a3] text-[16px] tracking-[0.7px] font-medium">사별 후 100일 이내이신가요?</span>
+          <label className="flex items-center justify-between bg-surface px-5 py-[10px] rounded-card w-full cursor-pointer">
+            <span className="text-placeholder text-[16px] tracking-brand font-medium">사별 후 100일 이내이신가요?</span>
             <div className="relative shrink-0 size-[22px]">
               <input
                 type="checkbox"
@@ -122,7 +122,7 @@ export default function Signup() {
               />
               <div
                 className={`size-[22px] rounded-[4px] border-[1.4px] border-solid flex items-center justify-center ${
-                  form.within100Days ? "bg-[#5f5e5e] border-[#5f5e5e]" : "bg-white border-[#c2c8c0]"
+                  form.within100Days ? "bg-muted border-muted" : "bg-white border-border"
                 }`}
               >
                 {form.within100Days && <CheckIcon size={14} color="white" />}
@@ -135,9 +135,9 @@ export default function Signup() {
           <PrimaryButton type="submit">가입하기</PrimaryButton>
         </div>
 
-        <div className="flex gap-[6px] items-center text-[14px] font-medium tracking-[0.7px]">
-          <span className="text-[#7f7e7a]">이미 회원이신가요?</span>
-          <Link href="/login" className="text-[#474741] underline">로그인하기</Link>
+        <div className="flex gap-[6px] items-center text-[14px] font-medium tracking-brand">
+          <span className="text-subtle">이미 회원이신가요?</span>
+          <Link href="/login" className="text-foreground underline">로그인하기</Link>
         </div>
       </form>
     </PageLayout>

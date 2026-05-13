@@ -12,12 +12,12 @@ export default function Splash() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-1">
-        <h1 className="text-[30px] font-bold text-black tracking-[0.7px]">
+        <h1 className="text-[30px] font-bold text-black tracking-brand">
           Yeoun
         </h1>
-        <p className="text-[14px] text-black tracking-[0.7px]">여운</p>
+        <p className="text-[14px] text-black tracking-brand">여운</p>
       </div>
     </div>
   );

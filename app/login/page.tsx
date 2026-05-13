@@ -17,23 +17,23 @@ export default function Login() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/chat");
+    router.push("/create/info"); 
   }
 
   return (
     <PageLayout className="flex flex-col gap-2 items-start pt-8 pb-8 px-6">
       <div className="flex items-center w-full">
-        <span className="text-[24px] font-bold text-black tracking-[0.7px]">Yeoun</span>
+        <span className="text-[24px] font-bold text-black tracking-brand">Yeoun</span>
       </div>
 
       <div className="flex-1 flex flex-col gap-[14px] items-start justify-center w-full py-8">
         <div className="flex items-end px-5 w-full">
-          <h1 className="text-[#474741] text-[18px] font-semibold tracking-[0.7px]">로그인</h1>
+          <h1 className="text-foreground text-[18px] font-semibold tracking-brand">로그인</h1>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white flex flex-col gap-[18px] items-center px-5 py-[30px] rounded-[10px] w-full"
+          className="bg-white flex flex-col gap-[18px] items-center px-5 py-[30px] rounded-sheet w-full"
         >
           <FormField
             label="이메일"
@@ -60,9 +60,9 @@ export default function Login() {
         </form>
 
         <div className="flex justify-center w-full">
-          <div className="flex gap-[6px] items-center text-[14px] font-medium tracking-[0.7px]">
-            <span className="text-[#7f7e7a]">아직 회원이 아니신가요?</span>
-            <Link href="/signup" className="text-[#474741] underline">
+          <div className="flex gap-[6px] items-center text-[14px] font-medium tracking-brand">
+            <span className="text-subtle">아직 회원이 아니신가요?</span>
+            <Link href="/signup" className="text-foreground underline">
               회원가입하기
             </Link>
           </div>

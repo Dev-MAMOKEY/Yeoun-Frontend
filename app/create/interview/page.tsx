@@ -44,30 +44,30 @@ export default function PersonaInterview() {
       <StepHeader step={3} title="인터뷰 진행" />
       <ProgressBar value={0.75} />
 
-      <div className="bg-white flex flex-col gap-[26px] items-center px-5 py-[40px] rounded-[10px] w-full">
+      <div className="bg-white flex flex-col gap-[26px] items-center px-5 py-[40px] rounded-sheet w-full">
         <div className="w-full">
-          <p className="text-[#474741] text-[18px] font-semibold leading-6">아래의 질문에 답변해주세요</p>
+          <p className="text-foreground text-[18px] font-semibold leading-6">아래의 질문에 답변해주세요</p>
         </div>
 
         {QUESTIONS.map((q, i) => (
           <div key={i} className="flex flex-col gap-[10px] items-start pt-[10px] w-[314px]">
             <div className="pl-3 w-full">
-              <p className="text-[#474741] text-[16px] font-semibold tracking-[0.7px] leading-normal whitespace-pre-line">{q}</p>
+              <p className="text-foreground text-[16px] font-semibold tracking-brand leading-normal whitespace-pre-line">{q}</p>
             </div>
             <input
               value={answers[i]}
               onChange={(e) => handleAnswer(i, e.target.value)}
               placeholder="답변을 입력해주세요"
               disabled={skipped[i]}
-              className={`px-5 py-[10px] rounded-[6px] w-full text-[16px] tracking-[0.7px] placeholder:text-[#a3a3a3] outline-none ${
-                skipped[i] ? "bg-[#d9d9d9] text-[#474741]" : "bg-[#f4f3f1] text-[#474741]"
+              className={`px-5 py-[10px] rounded-card w-full text-[16px] tracking-brand placeholder:text-placeholder outline-none ${
+                skipped[i] ? "bg-disabled text-foreground" : "bg-surface text-foreground"
               }`}
             />
             <button
               onClick={() => handleSkip(i)}
-              className="bg-[#d9d9d9] flex items-center justify-center px-5 py-[10px] rounded-[6px] w-full cursor-pointer"
+              className="bg-disabled flex items-center justify-center px-5 py-[10px] rounded-card w-full cursor-pointer"
             >
-              <span className="text-[#474741] text-[14px] tracking-[0.7px]">건너뛰기</span>
+              <span className="text-foreground text-[14px] tracking-brand">건너뛰기</span>
             </button>
           </div>
         ))}

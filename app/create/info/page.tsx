@@ -32,14 +32,14 @@ export default function PersonaInfo() {
       <StepHeader step={1} title="기본정보 입력" />
       <ProgressBar value={0.25} />
 
-      <div className="bg-white flex flex-col gap-5 items-center px-5 py-[30px] rounded-[10px] w-full">
-        <label className="border-2 border-[#a3a3a3] border-dashed flex flex-col gap-2 items-center justify-center p-2 rounded-[8px] size-[170px] cursor-pointer overflow-hidden relative">
+      <div className="bg-white flex flex-col gap-5 items-center px-5 py-[30px] rounded-sheet w-full">
+        <label className="border-2 border-placeholder border-dashed flex flex-col gap-2 items-center justify-center p-2 rounded-tile size-[170px] cursor-pointer overflow-hidden relative">
           {photo ? (
             <img src={photo} alt="업로드된 사진" className="absolute inset-0 w-full h-full object-cover" />
           ) : (
             <>
               <CameraIcon />
-              <span className="text-[#474741] text-[16px] font-medium leading-6">사진 업로드</span>
+              <span className="text-foreground text-[16px] font-medium leading-6">사진 업로드</span>
             </>
           )}
           <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
@@ -47,7 +47,7 @@ export default function PersonaInfo() {
 
         <div className="flex gap-1 items-center justify-center">
           <WarningIcon />
-          <span className="text-[#474741] text-[12px] font-medium leading-6">얼굴이 선명하게 담긴 사진을 올려주세요</span>
+          <span className="text-foreground text-[12px] font-medium leading-6">얼굴이 선명하게 담긴 사진을 올려주세요</span>
         </div>
 
         <FormField
@@ -73,7 +73,7 @@ export default function PersonaInfo() {
       </div>
 
       <div className="flex items-center justify-center w-full">
-        <span className="text-[#474741] text-[14px] leading-6">이 정보는 나중에 언제든 수정할 수 있어요</span>
+        <span className="text-foreground text-[14px] leading-6">이 정보는 나중에 언제든 수정할 수 있어요</span>
       </div>
     </PageLayout>
   );

@@ -13,9 +13,9 @@ export function PrimaryButton({ children, onClick, type = "button", active = tru
     <button
       type={type}
       onClick={onClick}
-      className={`${active ? "bg-[#5f5e5e]" : "bg-[#a3a3a3]"} flex items-center justify-center gap-1 px-[30px] py-[10px] rounded-[6px] w-full cursor-pointer transition-colors`}
+      className={`${active ? "bg-muted" : "bg-placeholder"} flex items-center justify-center gap-1 px-[30px] py-[10px] rounded-card w-full cursor-pointer transition-colors`}
     >
-      <span className="text-white text-[16px] font-medium tracking-[0.7px]">{children}</span>
+      <span className="text-white text-[16px] font-medium tracking-brand">{children}</span>
       {showArrow && <ArrowRightIcon />}
     </button>
   );
