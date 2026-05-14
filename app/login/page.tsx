@@ -17,7 +17,7 @@ export default function Login() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/create/info"); 
+    router.push("/onboarding/consent"); 
   }
 
   return (
