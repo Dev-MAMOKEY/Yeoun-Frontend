@@ -49,12 +49,12 @@ export function WarningIcon() {
   );
 }
 
-export function MicIcon({ size = 24 }: { size?: number }) {
+export function MicIcon({ size = 24, color = "#474741" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="9" y="3" width="6" height="10" rx="3" stroke="#474741" strokeWidth="2" />
-      <path d="M5 10a7 7 0 0014 0" stroke="#474741" strokeWidth="2" strokeLinecap="round" />
-      <line x1="12" y1="17" x2="12" y2="21" stroke="#474741" strokeWidth="2" strokeLinecap="round" />
+      <rect x="9" y="3" width="6" height="10" rx="3" stroke={color} strokeWidth="2" />
+      <path d="M5 10a7 7 0 0014 0" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <line x1="12" y1="17" x2="12" y2="21" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
