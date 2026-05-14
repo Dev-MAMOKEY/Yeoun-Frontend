@@ -1,25 +1,79 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageLayout } from "../../components/ui/PageLayout";
 import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { StepHeader } from "../../components/ui/StepHeader";
-import { ArrowLeftIcon, RecordIcon, PlayIcon, RewindIcon, FastForwardIcon, AddIcon } from "../../components/icons";
+import {
+  ArrowLeftIcon,
+  RecordIcon,
+  PlayIcon,
+  PauseIcon,
+  RewindIcon,
+  FastForwardIcon,
+  AddIcon,
+} from "../../components/icons";
+
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 export default function PersonaVoice() {
   const router = useRouter();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [progress, setProgress] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const audioUrl = useMemo(
+    () => (uploadedFile ? URL.createObjectURL(uploadedFile) : null),
+    [uploadedFile],
+  );
+
+  useEffect(() => {
+    if (!audioUrl) return;
+    return () => {
+      URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
+      audioRef.current?.pause();
       setUploadedFile(file);
-      setProgress(0);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
     }
   }
+
+  function togglePlay() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    } else {
+      audio.pause();
+      setIsPlaying(false);
+    }
+  }
+
+  function seekBy(seconds: number) {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const next = Math.min(Math.max(audio.currentTime + seconds, 0), duration || audio.duration || 0);
+    audio.currentTime = next;
+    setCurrentTime(next);
+  }
+
+  const progress = duration > 0 ? currentTime / duration : 0;
 
   return (
     <PageLayout className="flex flex-col gap-3 pt-8 pb-8 px-6">
@@ -58,6 +112,15 @@ export default function PersonaVoice() {
                 <p className="text-subtle text-[14px] font-medium">업로드 완료</p>
               </div>
 
+              <audio
+                ref={audioRef}
+                src={audioUrl ?? undefined}
+                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                onEnded={() => setIsPlaying(false)}
+                preload="metadata"
+              />
+
               <div className="flex flex-col gap-[10px] items-center py-[10px] w-full">
                 <div className="relative bg-white h-[6px] rounded-[4px] w-full">
                   <div
@@ -65,16 +128,32 @@ export default function PersonaVoice() {
                     style={{ width: `${progress * 100}%` }}
                   />
                 </div>
+                <div className="flex justify-between w-full text-subtle text-[12px] font-medium tracking-brand">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
               </div>
 
               <div className="flex items-center justify-between px-[26px] w-full">
-                <button onClick={() => setProgress(Math.max(0, progress - 0.1))} className="cursor-pointer">
+                <button
+                  onClick={() => seekBy(-10)}
+                  className="cursor-pointer"
+                  aria-label="10초 뒤로"
+                >
                   <RewindIcon />
                 </button>
-                <button className="cursor-pointer">
-                  <PlayIcon />
+                <button
+                  onClick={togglePlay}
+                  className="cursor-pointer"
+                  aria-label={isPlaying ? "일시정지" : "재생"}
+                >
+                  {isPlaying ? <PauseIcon /> : <PlayIcon />}
                 </button>
-                <button onClick={() => setProgress(Math.min(1, progress + 0.1))} className="cursor-pointer">
+                <button
+                  onClick={() => seekBy(10)}
+                  className="cursor-pointer"
+                  aria-label="10초 앞으로"
+                >
                   <FastForwardIcon />
                 </button>
               </div>
