@@ -235,30 +235,51 @@ export default function Chat() {
   }
 
   // ── SSE 이벤트 처리 ──
-  // 주의: 이벤트 type 이름은 백엔드 SSE 스펙에 맞춰 조정 필요
+  // 백엔드 이벤트: token(텍스트 토큰) / text_done(최종 텍스트) / media_ready(미디어) / crisis
   function handleSseEvent(ev: { type: string; data: string }) {
     switch (ev.type) {
-      case "message":
-      case "text":
-        // 페르소나의 텍스트 답변
-        addMessage({
-          messageId: makeId(),
-          role: "persona",
-          text: ev.data,
-          mediaReady: false,
-        });
+      case "token":
+        // 스트리밍 텍스트 토큰 — 최종 답변은 text_done에서 처리하므로 누적만 생략
         break;
-      case "media":
-      case "mediaReady":
-        // 답변 미디어 준비 완료 → store 갱신 후 영상 재생
-        if (ev.data && sessionIdRef.current) {
-          setMediaReady(ev.data);
-          setResponseState("idle");
-          setResponseMediaSrc(
-            `/api/session/${sessionIdRef.current}/messages/${ev.data}/media`,
-          );
+      case "text_done": {
+        // 페르소나의 최종 텍스트 답변 — data는 { message_id, text } JSON
+        try {
+          const parsed = JSON.parse(ev.data) as {
+            message_id: string;
+            text: string;
+          };
+          addMessage({
+            messageId: parsed.message_id,
+            role: "persona",
+            text: parsed.text,
+            mediaReady: false,
+          });
+        } catch {
+          // JSON 파싱 실패 시 무시
         }
         break;
+      }
+      case "media_ready": {
+        // 답변 미디어 준비 완료 — data는 { message_id, path } JSON
+        // 미디어 스트리밍 URL은 message_id 경로 파라미터로 구성
+        try {
+          const parsed = JSON.parse(ev.data) as {
+            message_id: string;
+            path?: string;
+          };
+          const sid = sessionIdRef.current;
+          if (parsed.message_id && sid) {
+            setMediaReady(parsed.message_id);
+            setResponseState("idle");
+            setResponseMediaSrc(
+              `/api/session/${sid}/messages/${parsed.message_id}/media`,
+            );
+          }
+        } catch {
+          // JSON 파싱 실패 시 무시
+        }
+        break;
+      }
       case "crisis":
         // 위기 키워드 감지 — 안내 카드 오버레이
         setCrisisMessage(

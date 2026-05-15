@@ -68,7 +68,7 @@ export default function Login() {
       setUser({ userId: me.id, email: me.email });
 
       // 4) 페르소나 보유 여부에 따라 이동 경로 분기
-      router.push(me.personas.length > 0 ? "/" : "/onboarding");
+      router.push(me.personas.length > 0 ? "/chat" : "/onboarding");
     } catch {
       setError("이메일 또는 비밀번호를 확인해주세요.");
     } finally {

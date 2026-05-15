@@ -534,11 +534,11 @@ function WaitingStep() {
         setStatus(s);
 
         if (s === "READY") {
-          // 생성 완료 → 페르소나 확정 후 홈으로
+          // 생성 완료 → 페르소나 확정 후 대화 화면으로
           if (interval) clearInterval(interval);
           setPersona({ ...persona!, status: "ready" });
           setCreationStep(null);
-          router.push("/");
+          router.push("/chat");
         } else if (s === "FAILED") {
           if (interval) clearInterval(interval);
           setErrorKind("failed");

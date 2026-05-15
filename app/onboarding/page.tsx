@@ -26,9 +26,9 @@ export default function Onboarding() {
   const [refusal, setRefusal] = useState<"yes" | "no" | null>(null);
   const [agreed, setAgreed] = useState(false);
 
-  // 페르소나 보유 시 홈으로 리다이렉트
+  // 페르소나 보유 시 대화 화면으로 리다이렉트
   useEffect(() => {
-    if (persona) router.replace("/");
+    if (persona) router.replace("/chat");
   }, [persona, router]);
 
   // 음성 자료 안내 단계
