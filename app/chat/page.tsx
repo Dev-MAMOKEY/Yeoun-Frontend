@@ -78,6 +78,8 @@ export default function Chat() {
   const [activeSlot, setActiveSlot] = useState<0 | 1>(0);
   // 답변 미디어 URL — 있으면 idle 영상 대신 재생
   const [responseMediaSrc, setResponseMediaSrc] = useState<string | null>(null);
+  // 답변 영상 첫 프레임 디코딩 완료 여부 — true가 되어야 idle 위로 덮음
+  const [responseReady, setResponseReady] = useState(false);
   const [responseState, setResponseState] = useState<ResponseState>("idle");
   const [toast, setToast] = useState<string | null>(null);
   const [crisisMessage, setCrisisMessage] = useState<string | null>(null);
@@ -304,6 +306,8 @@ export default function Chat() {
           if (parsed.message_id && sid) {
             setMediaReady(parsed.message_id);
             setResponseState("idle");
+            // 영상이 준비될 때까지 idle을 유지하기 위해 ready 초기화
+            setResponseReady(false);
             setResponseMediaSrc(
               `/api/session/${sid}/messages/${parsed.message_id}/media`,
             );
@@ -533,9 +537,7 @@ export default function Chat() {
                   ref={idleARef}
                   src={slotSrcs[0] ?? undefined}
                   className="absolute inset-0 w-full h-full object-cover"
-                  style={{
-                    opacity: activeSlot === 0 && !responseMediaSrc ? 1 : 0,
-                  }}
+                  style={{ opacity: activeSlot === 0 ? 1 : 0 }}
                   muted
                   playsInline
                   preload="auto"
@@ -545,9 +547,7 @@ export default function Chat() {
                   ref={idleBRef}
                   src={slotSrcs[1] ?? undefined}
                   className="absolute inset-0 w-full h-full object-cover"
-                  style={{
-                    opacity: activeSlot === 1 && !responseMediaSrc ? 1 : 0,
-                  }}
+                  style={{ opacity: activeSlot === 1 ? 1 : 0 }}
                   muted
                   playsInline
                   preload="auto"
@@ -555,15 +555,25 @@ export default function Chat() {
                 />
               </>
             )}
+            {/* 답변 영상 — 첫 프레임이 준비되면 idle 위로 덮어 검은 화면을 방지 */}
             {responseMediaSrc && (
               <video
                 key={responseMediaSrc}
                 src={responseMediaSrc}
                 className="absolute inset-0 w-full h-full object-cover"
+                style={{ opacity: responseReady ? 1 : 0 }}
                 autoPlay
                 playsInline
-                onEnded={() => setResponseMediaSrc(null)}
-                onError={() => setResponseMediaSrc(null)}
+                preload="auto"
+                onLoadedData={() => setResponseReady(true)}
+                onEnded={() => {
+                  setResponseMediaSrc(null);
+                  setResponseReady(false);
+                }}
+                onError={() => {
+                  setResponseMediaSrc(null);
+                  setResponseReady(false);
+                }}
               />
             )}
             {!slotSrcs[0] && !responseMediaSrc && (
