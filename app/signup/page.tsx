@@ -6,16 +6,10 @@ import { useRouter } from "next/navigation";
 import { PageLayout } from "../components/ui/PageLayout";
 import { FormField } from "../components/ui/FormField";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
-import { ArrowDownIcon, CheckIcon } from "../components/icons";
 import type { RsData, SignUpResponse } from "@/lib/types";
 
 // 이메일 형식 검사용 정규식
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 30 }, (_, i) => currentYear - i);
-const months = Array.from({ length: 12 }, (_, i) => i + 1);
-const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export default function Signup() {
   const router = useRouter();
@@ -25,20 +19,12 @@ export default function Signup() {
     email: "",
     password: "",
     passwordConfirm: "",
-    year: "",
-    month: "",
-    day: "",
-    within100Days: false,
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value, type } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError(null);
   }
 
@@ -140,55 +126,6 @@ export default function Signup() {
           onChange={handleChange}
           placeholder="비밀번호를 입력해주세요"
         />
-
-        <div className="flex flex-col gap-[10px] items-start w-full">
-          <div className="pl-3 text-foreground text-[16px] font-semibold tracking-brand w-full">사별 시점</div>
-
-          <div className="flex gap-[10px] items-center w-full">
-            {[
-              { name: "year", placeholder: "년도", options: years },
-              { name: "month", placeholder: "월", options: months },
-              { name: "day", placeholder: "일", options: days },
-            ].map(({ name, placeholder, options }) => (
-              <div key={name} className="relative flex-1">
-                <select
-                  name={name}
-                  value={form[name as keyof typeof form] as string}
-                  onChange={handleChange}
-                  className="bg-surface appearance-none px-5 py-[10px] rounded-card w-full text-[16px] tracking-brand text-placeholder outline-none cursor-pointer"
-                >
-                  <option value="" disabled>{placeholder}</option>
-                  {options.map((o) => (
-                    <option key={o} value={o} className="text-foreground">{o}</option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
-                  <ArrowDownIcon />
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <label className="flex items-center justify-between bg-surface px-5 py-[10px] rounded-card w-full cursor-pointer">
-            <span className="text-placeholder text-[16px] tracking-brand font-medium">사별 후 100일 이내이신가요?</span>
-            <div className="relative shrink-0 size-[22px]">
-              <input
-                type="checkbox"
-                name="within100Days"
-                checked={form.within100Days}
-                onChange={handleChange}
-                className="sr-only"
-              />
-              <div
-                className={`size-[22px] rounded-[4px] border-[1.4px] border-solid flex items-center justify-center ${
-                  form.within100Days ? "bg-muted border-muted" : "bg-white border-border"
-                }`}
-              >
-                {form.within100Days && <CheckIcon size={14} color="white" />}
-              </div>
-            </div>
-          </label>
-        </div>
 
         {/* 회원가입 실패 / 유효성 검사 에러 메시지 */}
         {error && (
