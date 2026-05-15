@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../components/BottomNav";
 import { HeadphoneIcon } from "../components/icons";
@@ -70,7 +70,12 @@ export default function Chat() {
   // ── 대화/응답 상태 ──
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [idleClips, setIdleClips] = useState<number[]>([]);
-  const [idleIndex, setIdleIndex] = useState(0);
+  // idle 영상 더블 버퍼 — [슬롯0, 슬롯1] src와 현재 활성 슬롯
+  const [slotSrcs, setSlotSrcs] = useState<[string | null, string | null]>([
+    null,
+    null,
+  ]);
+  const [activeSlot, setActiveSlot] = useState<0 | 1>(0);
   // 답변 미디어 URL — 있으면 idle 영상 대신 재생
   const [responseMediaSrc, setResponseMediaSrc] = useState<string | null>(null);
   const [responseState, setResponseState] = useState<ResponseState>("idle");
@@ -96,6 +101,11 @@ export default function Chat() {
   const abortRef = useRef<AbortController | null>(null);
   // 전송 실패 시 재시도용 마지막 녹음
   const lastBlobRef = useRef<Blob | null>(null);
+  // idle 더블 버퍼용 video 엘리먼트 ref
+  const idleARef = useRef<HTMLVideoElement>(null);
+  const idleBRef = useRef<HTMLVideoElement>(null);
+  // 다음에 예비 로드할 idle 클립 포인터
+  const nextClipRef = useRef(2);
 
   // sessionId가 바뀔 때마다 ref 동기화
   useEffect(() => {
@@ -175,6 +185,29 @@ export default function Chat() {
       audioContextRef.current?.close();
     };
   }, []);
+
+  // idle 클립 스트리밍 URL 목록
+  const idleUrls = useMemo(
+    () =>
+      personaId
+        ? idleClips.map((idx) => `/api/persona/${personaId}/idle-clips/${idx}`)
+        : [],
+    [personaId, idleClips],
+  );
+
+  // idle 클립 목록이 준비되면 더블 버퍼 슬롯 초기화
+  useEffect(() => {
+    if (idleUrls.length === 0) return;
+    setSlotSrcs([idleUrls[0], idleUrls[1 % idleUrls.length]]);
+    setActiveSlot(0);
+    nextClipRef.current = 2;
+  }, [idleUrls]);
+
+  // 활성 idle 슬롯 재생 — 스왑/초기화 시 미리 로드된 클립을 처음부터 재생
+  useEffect(() => {
+    const video = (activeSlot === 0 ? idleARef : idleBRef).current;
+    video?.play().catch(() => {});
+  }, [activeSlot, slotSrcs]);
 
   // ── 웨이브폼 애니메이션 ──
   function startWaveAnimation() {
@@ -456,21 +489,24 @@ export default function Chat() {
     else startRecording();
   }
 
-  // 영상 재생 종료 — 답변 미디어면 idle 복귀, idle이면 다음 클립으로 순환
-  function handleVideoEnded() {
-    if (responseMediaSrc) {
-      setResponseMediaSrc(null);
-    } else if (idleClips.length > 0) {
-      setIdleIndex((i) => (i + 1) % idleClips.length);
-    }
+  // idle 클립 종료 — 미리 로드된 다음 슬롯으로 전환하고 그다음 클립을 예비 로드
+  function handleIdleEnded() {
+    if (idleUrls.length === 0) return;
+    const freed = activeSlot;
+    const upcoming = idleUrls[nextClipRef.current % idleUrls.length];
+    nextClipRef.current += 1;
+    const freedVideo = (freed === 0 ? idleARef : idleBRef).current;
+    setSlotSrcs((prev) => {
+      // src가 같으면 React가 reload하지 않으므로 슬롯 상태는 그대로 둠
+      if (prev[freed] === upcoming) return prev;
+      const copy: [string | null, string | null] = [prev[0], prev[1]];
+      copy[freed] = upcoming;
+      return copy;
+    });
+    // 비활성으로 돌아간 슬롯은 처음으로 되감아 다음 차례를 대비
+    if (freedVideo) freedVideo.currentTime = 0;
+    setActiveSlot((s) => (s === 0 ? 1 : 0));
   }
-
-  // 표시할 영상 — 답변 미디어 우선, 없으면 idle 클립 순환
-  const idleSrc =
-    idleClips.length > 0 && personaId
-      ? `/api/persona/${personaId}/idle-clips/${idleClips[idleIndex % idleClips.length]}`
-      : null;
-  const displaySrc = responseMediaSrc ?? idleSrc;
 
   // 상단 배지 문구
   const badgeText = isRecording
@@ -490,18 +526,47 @@ export default function Chat() {
 
         <div className="flex items-start overflow-hidden pt-[6px] pb-4 shrink-0 w-full">
           <div className="relative h-[431px] w-full overflow-hidden">
-            {/* 페르소나 영상 (idle 순환 / 답변 미디어) */}
-            {displaySrc ? (
+            {/* 페르소나 영상 — idle 더블 버퍼(끊김 없는 순환) + 답변 미디어 */}
+            {slotSrcs[0] && (
+              <>
+                <video
+                  ref={idleARef}
+                  src={slotSrcs[0] ?? undefined}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{
+                    opacity: activeSlot === 0 && !responseMediaSrc ? 1 : 0,
+                  }}
+                  muted
+                  playsInline
+                  preload="auto"
+                  onEnded={handleIdleEnded}
+                />
+                <video
+                  ref={idleBRef}
+                  src={slotSrcs[1] ?? undefined}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{
+                    opacity: activeSlot === 1 && !responseMediaSrc ? 1 : 0,
+                  }}
+                  muted
+                  playsInline
+                  preload="auto"
+                  onEnded={handleIdleEnded}
+                />
+              </>
+            )}
+            {responseMediaSrc && (
               <video
-                key={displaySrc}
-                src={displaySrc}
+                key={responseMediaSrc}
+                src={responseMediaSrc}
                 className="absolute inset-0 w-full h-full object-cover"
                 autoPlay
-                muted={!responseMediaSrc}
                 playsInline
-                onEnded={handleVideoEnded}
+                onEnded={() => setResponseMediaSrc(null)}
+                onError={() => setResponseMediaSrc(null)}
               />
-            ) : (
+            )}
+            {!slotSrcs[0] && !responseMediaSrc && (
               <div className="absolute inset-0 bg-gradient-to-b from-disabled to-surface" />
             )}
             <div className="absolute bottom-0 left-0 right-0 h-[137px] bg-gradient-to-b from-transparent to-surface" />

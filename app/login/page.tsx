@@ -55,20 +55,19 @@ export default function Login() {
         return;
       }
 
-      // 2) 내 정보 조회 — 사용자 정보 + 페르소나 보유 여부 확인
-      const meRes = await fetch("/api/users/me");
-      const meJson = (await meRes.json()) as RsData<UserMeResponse>;
-      if (!meJson.success || !meJson.data) {
-        setError("이메일 또는 비밀번호를 확인해주세요.");
-        return;
+      // 2) 내 정보 조회 — authStore에 사용자 정보 저장 (실패해도 로그인은 성공이므로 진행)
+      try {
+        const meRes = await fetch("/api/users/me");
+        const meJson = (await meRes.json()) as RsData<UserMeResponse>;
+        if (meJson.success && meJson.data) {
+          setUser({ userId: meJson.data.id, email: meJson.data.email });
+        }
+      } catch {
+        // 내 정보 조회 실패는 무시
       }
 
-      // 3) authStore에 사용자 정보 저장
-      const me = meJson.data;
-      setUser({ userId: me.id, email: me.email });
-
-      // 4) 페르소나 보유 여부에 따라 이동 경로 분기
-      router.push(me.personas.length > 0 ? "/chat" : "/onboarding");
+      // 3) 대화 화면으로 이동 — 페르소나가 없으면 chat에서 온보딩으로 리다이렉트
+      router.push("/chat");
     } catch {
       setError("이메일 또는 비밀번호를 확인해주세요.");
     } finally {

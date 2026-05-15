@@ -125,19 +125,14 @@ function BasicStep() {
   const router = useRouter();
   const setPersona = usePersonaStore((s) => s.setPersona);
   const setCreationStep = usePersonaStore((s) => s.setCreationStep);
+  // 사진 미리보기 — 생성 중 화면과 공유하기 위해 store에 보관
+  const photoPreview = usePersonaStore((s) => s.photoPreview);
+  const setPhotoPreview = usePersonaStore((s) => s.setPhotoPreview);
 
   const [form, setForm] = useState({ name: "", nickname: "" });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // 사진 미리보기 ObjectURL 해제
-  useEffect(() => {
-    return () => {
-      if (photoPreview) URL.revokeObjectURL(photoPreview);
-    };
-  }, [photoPreview]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -150,7 +145,12 @@ function BasicStep() {
     // 업로드 전 리사이즈·압축
     const resized = await resizeImage(file);
     setPhotoFile(resized);
-    setPhotoPreview(URL.createObjectURL(resized));
+    // 미리보기 + 생성 중 화면 공유용 data URL 저장
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(resized);
     setError(null);
   }
 
@@ -504,6 +504,8 @@ function WaitingStep() {
   const setPersona = usePersonaStore((s) => s.setPersona);
   const setCreationStep = usePersonaStore((s) => s.setCreationStep);
   const clearPersona = usePersonaStore((s) => s.clearPersona);
+  // 1단계에서 업로드한 고인 사진 미리보기
+  const photoPreview = usePersonaStore((s) => s.photoPreview);
 
   const [status, setStatus] = useState<PersonaStatus | null>(null);
   // 'failed' = 생성 실패(처음부터), 'network' = 조회 실패(폴링 재시도)
@@ -511,7 +513,7 @@ function WaitingStep() {
   const [slow, setSlow] = useState(false); // 2분 초과 여부
   const [retryKey, setRetryKey] = useState(0); // 폴링 재시작 트리거
 
-  // 5초 간격 상태 폴링
+  // 10초 간격 상태 폴링
   useEffect(() => {
     if (!persona) return;
     let cancelled = false;
@@ -555,7 +557,7 @@ function WaitingStep() {
     }
 
     poll(); // 즉시 1회 실행
-    interval = setInterval(poll, 5000);
+    interval = setInterval(poll, 10000);
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
@@ -626,7 +628,15 @@ function WaitingStep() {
         <p className="text-foreground text-[18px] font-semibold leading-6">페르소나를 만날 준비를 하고 있어요</p>
         <p className="text-foreground text-[14px] font-medium leading-6">약 5분 정도 걸릴거예요</p>
 
-        <div className="border-2 border-placeholder bg-surface-soft rounded-tile size-[170px]" />
+        <div className="border-2 border-placeholder bg-surface-soft rounded-tile size-[170px] overflow-hidden">
+          {photoPreview && (
+            <img
+              src={photoPreview}
+              alt="고인의 사진"
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
 
         <div className="flex items-center justify-center">
           <p className="text-foreground text-[14px] font-medium leading-6">
