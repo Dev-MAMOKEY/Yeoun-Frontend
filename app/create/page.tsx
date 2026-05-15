@@ -48,6 +48,39 @@ interface VoiceFile {
 // 업로드 실패 공통 안내 문구
 const UPLOAD_ERROR = "업로드 중 오류가 발생했습니다. 다시 시도해주세요.";
 
+// 업로드 전 이미지를 리사이즈·압축 (서버 413 방지)
+async function resizeImage(file: File, maxSize = 1600, quality = 0.85): Promise<File> {
+  // 이미지가 아니면 원본 그대로 반환
+  if (!file.type.startsWith("image/")) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    let { width, height } = bitmap;
+    // 긴 변을 maxSize 이하로 축소
+    if (width > maxSize || height > maxSize) {
+      const ratio = Math.min(maxSize / width, maxSize / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality),
+    );
+    if (!blob) return file;
+    // 압축 결과가 원본보다 크면 원본 사용
+    if (blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
+  } catch {
+    // 리사이즈 실패 시 원본 사용
+    return file;
+  }
+}
+
 // 고유 id 생성
 function makeId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -111,13 +144,14 @@ function BasicStep() {
     setError(null);
   }
 
-  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
-      setError(null);
-    }
+    if (!file) return;
+    // 업로드 전 리사이즈·압축
+    const resized = await resizeImage(file);
+    setPhotoFile(resized);
+    setPhotoPreview(URL.createObjectURL(resized));
+    setError(null);
   }
 
   async function handleNext() {
