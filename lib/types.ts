@@ -86,3 +86,19 @@ export interface PersonaCreateRequest {
 export interface DeleteAccountRequest {
   password: string;
 }
+
+// 세션 시작 요청
+export interface SessionStartRequest {
+  personaId: string; // UUID
+}
+
+// 세션 시작 응답
+export interface SessionStartResponse {
+  sessionId: string; // UUID
+}
+
+// SSE 이벤트 타입 (메시지 전송 응답)
+export interface SseEvent {
+  type: string;
+  data: string;
+}
