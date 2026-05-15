@@ -2,7 +2,7 @@ import type { RsData } from "./types";
 
 
 // Spring Boot 서버 baseURL
-const BASE_URL = process.env.API_BASE_URL;
+export const BASE_URL = process.env.API_BASE_URL;
 
 // API 에러: success: false 응답을 표준화한 에러 객체
 export class ApiError extends Error {
@@ -83,12 +83,19 @@ export function apiPost<T>(
   );
 }
 
-// DELETE 요청
+// DELETE 요청 (선택적으로 JSON body 전달 가능)
 export function apiDelete<T>(
   path: string,
+  body?: unknown,
   options?: RequestOptions,
 ): Promise<T> {
-  return request<T>(path, { method: "DELETE" }, options);
+  const init: RequestInit = { method: "DELETE" };
+  // body가 있을 때만 JSON 헤더와 본문 부착
+  if (body !== undefined) {
+    init.headers = { "Content-Type": "application/json" };
+    init.body = JSON.stringify(body);
+  }
+  return request<T>(path, init, options);
 }
 
 // multipart/form-data 업로드
