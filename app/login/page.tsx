@@ -6,18 +6,73 @@ import { useRouter } from "next/navigation";
 import { PageLayout } from "../components/ui/PageLayout";
 import { FormField } from "../components/ui/FormField";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
+import { useAuthStore } from "@/store/authStore";
+import type { RsData, UserMeResponse } from "@/lib/types";
+
+// 이메일 형식 검사용 정규식
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Login() {
   const router = useRouter();
+  // authStore의 setUser 액션 (로그인 성공 시 사용자 정보 저장)
+  const setUser = useAuthStore((s) => s.setUser);
+
   const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setError(null);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/onboarding/consent"); 
+    if (submitting) return; // 중복 제출 방지
+
+    // 클라이언트 측 유효성 검사
+    if (!EMAIL_REGEX.test(form.email)) {
+      setError("올바른 이메일 형식이 아닙니다.");
+      return;
+    }
+    if (form.password.length < 8) {
+      setError("비밀번호는 8자 이상 입력해주세요.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      // 1) 로그인 요청 — 성공 시 토큰이 HttpOnly 쿠키로 저장됨
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const loginJson = (await loginRes.json()) as RsData<null>;
+      if (!loginJson.success) {
+        setError("이메일 또는 비밀번호를 확인해주세요.");
+        return;
+      }
+
+      // 2) 내 정보 조회 — authStore에 사용자 정보 저장 (실패해도 로그인은 성공이므로 진행)
+      try {
+        const meRes = await fetch("/api/users/me");
+        const meJson = (await meRes.json()) as RsData<UserMeResponse>;
+        if (meJson.success && meJson.data) {
+          setUser({ userId: meJson.data.id, email: meJson.data.email });
+        }
+      } catch {
+        // 내 정보 조회 실패는 무시
+      }
+
+      // 3) 대화 화면으로 이동 — 페르소나가 없으면 chat에서 온보딩으로 리다이렉트
+      router.push("/chat");
+    } catch {
+      setError("이메일 또는 비밀번호를 확인해주세요.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -54,8 +109,15 @@ export default function Login() {
             placeholder="비밀번호를 입력해주세요"
           />
 
+          {/* 로그인 실패 / 유효성 검사 에러 메시지 */}
+          {error && (
+            <p className="text-[#c44] text-[13px] font-medium w-full pl-3">{error}</p>
+          )}
+
           <div className="flex flex-col items-start py-[14px] w-full">
-            <PrimaryButton type="submit">로그인하기</PrimaryButton>
+            <PrimaryButton type="submit" active={!submitting}>
+              {submitting ? "로그인 중..." : "로그인하기"}
+            </PrimaryButton>
           </div>
         </form>
 

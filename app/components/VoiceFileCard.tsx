@@ -1,21 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { PageLayout } from "../../components/ui/PageLayout";
-import { PrimaryButton } from "../../components/ui/PrimaryButton";
-import { ProgressBar } from "../../components/ui/ProgressBar";
-import { StepHeader } from "../../components/ui/StepHeader";
+import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeftIcon,
   RecordIcon,
   PlayIcon,
   PauseIcon,
   RewindIcon,
   FastForwardIcon,
-  AddIcon,
-} from "../../components/icons";
+} from "./icons";
 
+// 초 단위를 m:ss 형식으로 변환
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const m = Math.floor(seconds / 60);
@@ -23,19 +17,22 @@ function formatTime(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-interface VoiceFile {
-  id: string;
-  file: File;
-}
-
 interface VoiceFileCardProps {
   id: string;
   file: File;
+  // 다른 카드 재생 시 자신을 멈추기 위한 pause 핸들러 등록
   registerPause: (id: string, pause: () => void) => () => void;
+  // 재생 시작 시 다른 카드를 멈추도록 부모에 알림
   onPlayStart: (id: string) => void;
 }
 
-function VoiceFileCard({ id, file, registerPause, onPlayStart }: VoiceFileCardProps) {
+// 업로드한 음성/영상 파일을 재생·탐색하는 카드
+export function VoiceFileCard({
+  id,
+  file,
+  registerPause,
+  onPlayStart,
+}: VoiceFileCardProps) {
   const mediaRef = useRef<HTMLVideoElement | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -43,18 +40,23 @@ function VoiceFileCard({ id, file, registerPause, onPlayStart }: VoiceFileCardPr
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  // 파일로부터 ObjectURL 생성 (언마운트 시 해제)
+  // 렌더 중 생성하면 Strict Mode에서 URL이 누수되므로 effect에서 동기화한다
   useEffect(() => {
     const url = URL.createObjectURL(file);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMediaUrl(url);
     return () => {
       URL.revokeObjectURL(url);
     };
   }, [file]);
 
+  // URL이 바뀌면 미디어 메타데이터 다시 로드
   useEffect(() => {
     if (mediaUrl) mediaRef.current?.load();
   }, [mediaUrl]);
 
+  // 부모에 pause 핸들러 등록
   useEffect(() => {
     return registerPause(id, () => {
       mediaRef.current?.pause();
@@ -65,7 +67,7 @@ function VoiceFileCard({ id, file, registerPause, onPlayStart }: VoiceFileCardPr
     const media = mediaRef.current;
     if (!media) return;
     if (media.paused) {
-      onPlayStart(id);
+      onPlayStart(id); // 다른 카드 정지 요청
       media
         .play()
         .then(() => setIsPlaying(true))
@@ -78,6 +80,7 @@ function VoiceFileCard({ id, file, registerPause, onPlayStart }: VoiceFileCardPr
     }
   }
 
+  // 앞/뒤 탐색 (초 단위)
   function seekBy(seconds: number) {
     const media = mediaRef.current;
     if (!media) return;
@@ -99,6 +102,7 @@ function VoiceFileCard({ id, file, registerPause, onPlayStart }: VoiceFileCardPr
         <p className="text-subtle text-[14px] font-medium">업로드 완료</p>
       </div>
 
+      {/* 오디오/비디오 모두 재생 가능하도록 video 엘리먼트 사용 (화면 밖 배치) */}
       {mediaUrl && (
         <video
           ref={mediaRef}
@@ -151,89 +155,5 @@ function VoiceFileCard({ id, file, registerPause, onPlayStart }: VoiceFileCardPr
         </button>
       </div>
     </div>
-  );
-}
-
-export default function PersonaVoice() {
-  const router = useRouter();
-  const [files, setFiles] = useState<VoiceFile[]>([]);
-  const pauseHandlersRef = useRef<Map<string, () => void>>(new Map());
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      const id =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random()}`;
-      setFiles((prev) => [...prev, { id, file }]);
-    }
-    e.target.value = "";
-  }
-
-  const registerPause = useCallback((id: string, pause: () => void) => {
-    pauseHandlersRef.current.set(id, pause);
-    return () => {
-      pauseHandlersRef.current.delete(id);
-    };
-  }, []);
-
-  const handlePlayStart = useCallback((id: string) => {
-    pauseHandlersRef.current.forEach((pause, otherId) => {
-      if (otherId !== id) pause();
-    });
-  }, []);
-
-  return (
-    <PageLayout className="flex flex-col gap-3 pt-8 pb-8 px-6">
-      <button onClick={() => router.back()} className="flex items-center">
-        <ArrowLeftIcon />
-      </button>
-
-      <StepHeader step={2} title="음성 업로드" />
-      <ProgressBar value={0.5} />
-
-      <div className="bg-white flex flex-col gap-5 items-center px-5 py-[30px] rounded-sheet w-full">
-        <div className="flex flex-col gap-1 items-start text-foreground text-[18px] font-semibold w-full">
-          <p className="leading-6">고인의 목소리가 담긴 영상이나</p>
-          <p className="leading-6">음성 파일을 올려주세요 (1분 이상)</p>
-        </div>
-
-        {files.length === 0 ? (
-          <label className="bg-surface-strong flex gap-[14px] items-start px-4 py-[22px] rounded-card w-full cursor-pointer">
-            <div className="bg-white flex items-center justify-center p-[6px] rounded-[4px] size-[40px] shrink-0">
-              <RecordIcon />
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-foreground text-[16px] font-semibold tracking-brand">음성 파일 업로드</p>
-              <p className="text-subtle text-[12px] font-medium tracking-brand">mp4, mov, m4a, wav 형식 가능해요</p>
-            </div>
-            <input type="file" accept="audio/*,video/*" className="sr-only" onChange={handleFileChange} />
-          </label>
-        ) : (
-          <>
-            {files.map((entry) => (
-              <VoiceFileCard
-                key={entry.id}
-                id={entry.id}
-                file={entry.file}
-                registerPause={registerPause}
-                onPlayStart={handlePlayStart}
-              />
-            ))}
-
-            <label className="bg-surface-strong flex flex-col gap-[6px] items-center justify-center p-4 rounded-card w-full cursor-pointer">
-              <AddIcon color="var(--color-subtle)" />
-              <span className="text-subtle text-[14px] font-semibold tracking-brand">음성 파일 추가 업로드</span>
-              <input type="file" accept="audio/*,video/*" className="sr-only" onChange={handleFileChange} />
-            </label>
-          </>
-        )}
-      </div>
-
-      <div className="flex flex-col items-start py-[14px] w-full">
-        <PrimaryButton onClick={() => router.push("/create/interview")}>다음</PrimaryButton>
-      </div>
-    </PageLayout>
   );
 }
