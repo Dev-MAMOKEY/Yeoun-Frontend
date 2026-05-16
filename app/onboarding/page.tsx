@@ -80,9 +80,7 @@ export default function Onboarding() {
                 <div className="bg-border h-[4px] rounded-full w-8" />
               </div>
 
-              <div className="pt-[9px]">
-                <h2 className="text-foreground text-[18px] font-semibold tracking-brand">음성 자료를 찾아보세요</h2>
-              </div>
+              <h2 className="text-foreground text-[18px] font-semibold tracking-brand">음성 자료를 찾아보세요</h2>
 
               <div className="flex flex-col gap-5 w-full">
                 {[
@@ -102,7 +100,7 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-center pt-[6px] w-full">
+              <div className="flex items-center justify-center w-full">
                 <button
                   onClick={() => setShowSheet(false)}
                   className="text-foreground text-[14px] font-medium tracking-brand underline"
