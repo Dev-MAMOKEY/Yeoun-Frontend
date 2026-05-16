@@ -141,16 +141,16 @@ export default function Login() {
               {submitting ? "로그인 중..." : "로그인하기"}
             </PrimaryButton>
           </div>
-        </form>
 
-        <div className="flex justify-center w-full">
-          <div className="flex gap-[6px] items-center text-[14px] font-medium tracking-brand">
-            <span className="text-subtle">아직 회원이 아니신가요?</span>
-            <Link href="/signup" className="text-foreground underline">
-              회원가입하기
-            </Link>
+          <div className="flex justify-center w-full">
+            <div className="flex gap-[6px] items-center text-[14px] font-medium tracking-brand">
+              <span className="text-subtle">아직 회원이 아니신가요?</span>
+              <Link href="/signup" className="text-foreground underline">
+                회원가입하기
+              </Link>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </PageLayout>
   );
