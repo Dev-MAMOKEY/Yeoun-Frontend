@@ -12,9 +12,13 @@ import {
   CheckIcon,
 } from "../components/icons";
 import { usePersonaStore } from "@/store/personaStore";
+import type { RsData } from "@/lib/types";
 
 // 온보딩 내부 단계 — 음성 자료 안내 → 약관 동의
 type OnboardingStep = "voice" | "consent";
+
+// 동의 약관 버전 — 약관 본문이 바뀌면 함께 갱신
+const CONSENT_VERSION = 1;
 
 export default function Onboarding() {
   const router = useRouter();
@@ -26,6 +30,9 @@ export default function Onboarding() {
   const [refusal, setRefusal] = useState<"yes" | "no" | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [consentError, setConsentError] = useState(false);
+  // consent API 호출 중 / 에러 상태
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // 약관 동의 시 미동의 에러 자동 해제
   const handleToggleAgreed = () => {
@@ -36,13 +43,43 @@ export default function Onboarding() {
     });
   };
 
-  // 다음 버튼 — 약관 미동의 시 에러 표시, 동의 시 페르소나 생성 플로우로 이동
-  const handleNext = () => {
+  // refusal === "yes"이면 다음 진행 자체를 차단
+  const refusedByDeceased = refusal === "yes";
+  const canProceed = agreed && !refusedByDeceased && !submitting;
+
+  // 다음 버튼 — 약관 미동의 시 에러 표시, 동의 시 consent 기록 후 페르소나 생성 플로우로 이동
+  const handleNext = async () => {
+    if (submitting) return;
+    if (refusedByDeceased) return; // 거부 응답이면 진행 자체 차단
     if (!agreed) {
       setConsentError(true);
       return;
     }
-    router.push("/create");
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/persona/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          consentVersion: CONSENT_VERSION,
+          termsAgreed: true,
+          declinedIntentAnswered: false,
+        }),
+      });
+      const json = (await res.json()) as RsData<null>;
+      if (!json.success) {
+        setSubmitError(
+          json.error?.message ?? "동의 기록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요",
+        );
+        return;
+      }
+      router.push("/create");
+    } catch {
+      setSubmitError("동의 기록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // 페르소나 보유 시 대화 화면으로 리다이렉트
@@ -162,14 +199,14 @@ export default function Onboarding() {
               </button>
             ))}
           </div>
-          {/* "예" 선택 시 안내 — 진행은 차단하지 않음 */}
+          {/* "예" 선택 시 안내 — 고인의 뜻을 따라 진행을 차단 */}
           {refusal === "yes" && (
             <p
               role="status"
               aria-live="polite"
               className="text-subtle text-[14px] font-medium leading-6 tracking-brand"
             >
-              고인의 뜻을 한 번 더 생각해 주셔서 감사해요. 신중하게 결정해 주세요
+              고인의 뜻을 따라 페르소나 생성을 진행할 수 없어요. 가족이 함께 더 이야기 나눠 보세요
             </p>
           )}
         </div>
@@ -217,9 +254,14 @@ export default function Onboarding() {
           </div>
         </div>
 
-        {/* 약관 동의 시 페르소나 생성 플로우로 이동, 미동의 시 에러 노출 */}
-        <PrimaryButton active={agreed} onClick={handleNext}>
-          다음
+        {/* 일반 API 오류 안내 */}
+        {submitError && (
+          <p role="alert" className="text-[#c44] text-[13px] font-medium w-full pl-3">{submitError}</p>
+        )}
+
+        {/* 거부 응답 시 진행 차단, 미동의 시 에러 노출, 동의 시 consent 기록 후 이동 */}
+        <PrimaryButton active={canProceed} onClick={handleNext}>
+          {submitting ? "기록 중..." : "다음"}
         </PrimaryButton>
       </div>
     </PageLayout>

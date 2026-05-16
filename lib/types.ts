@@ -82,6 +82,14 @@ export interface PersonaCreateRequest {
   nickname: string;
 }
 
+// 페르소나 생성 동의 기록 요청
+// declinedIntentAnswered: 고인이 생전에 디지털 추모를 거부했다는 응답이면 true
+export interface PersonaConsentRequest {
+  consentVersion: number;
+  termsAgreed: boolean;
+  declinedIntentAnswered: boolean;
+}
+
 // 계정 삭제 요청
 export interface DeleteAccountRequest {
   password: string;
