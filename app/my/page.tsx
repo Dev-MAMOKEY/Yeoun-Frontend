@@ -3,27 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../components/BottomNav";
-import { ArrowRightIcon } from "../components/icons";
 import { useAuthStore } from "@/store/authStore";
 import { usePersonaStore } from "@/store/personaStore";
 import { useSessionStore } from "@/store/sessionStore";
-import type { PersonaSummary, RsData, UserMeResponse } from "@/lib/types";
-
-// KST(Asia/Seoul) 기준 'YYYY.MM.DD' 포맷으로 변환
-// Intl.DateTimeFormat을 사용해 서버 응답의 오프셋 포함/UTC Z 형식 모두 안전하게 처리
-function formatKstDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const lookup: Record<string, string> = {};
-  for (const part of parts) lookup[part.type] = part.value;
-  return `${lookup.year}.${lookup.month}.${lookup.day}`;
-}
+import type { RsData, UserMeResponse } from "@/lib/types";
 
 export default function My() {
   const router = useRouter();
@@ -34,9 +17,6 @@ export default function My() {
   const setPersona = usePersonaStore((s) => s.setPersona);
   const clearPersona = usePersonaStore((s) => s.clearPersona);
   const clearSession = useSessionStore((s) => s.clearSession);
-
-  // 페르소나 정보 카드용 — /users/me 응답에서 첫 페르소나 요약을 보관
-  const [personaSummary, setPersonaSummary] = useState<PersonaSummary | null>(null);
 
   // 로그아웃 확인 다이얼로그 상태
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -70,20 +50,6 @@ export default function My() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [showLogoutDialog]);
 
-  // 안내 토스트 (비밀번호 변경 등 미구현 기능 안내용)
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  function showToast(message: string) {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast(message);
-    toastTimerRef.current = setTimeout(() => setToast(null), 1800);
-  }
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    };
-  }, []);
-
   // 계정 삭제용 비밀번호 입력 시트 상태
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [password, setPassword] = useState("");
@@ -103,7 +69,7 @@ export default function My() {
         const me = json.data;
         setUser({ userId: me.id, email: me.email });
 
-        // 보유한 페르소나가 있으면 store에 반영
+        // 보유한 페르소나가 있으면 store에 반영 (다른 화면에서 사용)
         const first = me.personas[0];
         if (first) {
           setPersona({
@@ -112,9 +78,6 @@ export default function My() {
             nickname: first.nickname,
             status: first.status === "READY" ? "ready" : "draft",
           });
-          setPersonaSummary(first);
-        } else {
-          setPersonaSummary(null);
         }
       } catch {
         // 조회 실패 시 화면은 그대로 두고 무시
@@ -207,56 +170,6 @@ export default function My() {
                 </span>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => showToast("준비 중입니다")}
-              aria-disabled="true"
-              title="준비 중입니다"
-              className="flex gap-2 items-center justify-center px-3 w-full cursor-not-allowed opacity-60"
-            >
-              <span className="flex-1 text-foreground text-[16px] font-semibold tracking-brand text-left">비밀번호 변경하기</span>
-              <ArrowRightIcon color="var(--color-foreground)" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-[10px] items-start w-full">
-          <div className="pl-3">
-            <h2 className="text-foreground text-[18px] font-semibold leading-6">페르소나 정보</h2>
-          </div>
-          <div className="bg-white flex flex-col gap-[22px] items-start justify-center px-5 py-[30px] rounded-sheet w-full">
-            {personaSummary ? (
-              <>
-                <div className="flex flex-col gap-[10px] w-full">
-                  <div className="flex items-center justify-center pl-3 w-full">
-                    <span className="flex-1 text-foreground text-[16px] font-semibold tracking-brand">이름</span>
-                  </div>
-                  <div className="bg-surface flex items-center px-5 py-[10px] rounded-card w-full">
-                    <span className="text-[#8a8a8a] text-[16px] font-medium tracking-brand">
-                      {personaSummary.name}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-[10px] w-full">
-                  <div className="flex items-center justify-center pl-3 w-full">
-                    <span className="flex-1 text-foreground text-[16px] font-semibold tracking-brand">생성일</span>
-                  </div>
-                  <div className="bg-surface flex items-center px-5 py-[10px] rounded-card w-full">
-                    <span className="text-[#8a8a8a] text-[16px] font-medium tracking-brand">
-                      {formatKstDate(personaSummary.createdAt)}
-                    </span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center pl-3 w-full">
-                <span className="text-[#8a8a8a] text-[16px] font-medium tracking-brand">
-                  등록된 페르소나가 없어요
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -283,17 +196,6 @@ export default function My() {
 
         <BottomNav />
       </div>
-
-      {/* 안내 토스트 */}
-      {toast && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed left-1/2 -translate-x-1/2 bottom-[120px] z-50 bg-[rgba(19,19,19,0.85)] text-white text-[14px] font-medium px-4 py-[10px] rounded-card"
-        >
-          {toast}
-        </div>
-      )}
 
       {/* 로그아웃 확인 다이얼로그 */}
       {showLogoutDialog && (
