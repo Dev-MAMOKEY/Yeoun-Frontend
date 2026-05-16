@@ -25,6 +25,25 @@ export default function Onboarding() {
   const [showSheet, setShowSheet] = useState(false);
   const [refusal, setRefusal] = useState<"yes" | "no" | null>(null);
   const [agreed, setAgreed] = useState(false);
+  const [consentError, setConsentError] = useState(false);
+
+  // 약관 동의 시 미동의 에러 자동 해제
+  const handleToggleAgreed = () => {
+    setAgreed((prev) => {
+      const next = !prev;
+      if (next) setConsentError(false);
+      return next;
+    });
+  };
+
+  // 다음 버튼 — 약관 미동의 시 에러 표시, 동의 시 페르소나 생성 플로우로 이동
+  const handleNext = () => {
+    if (!agreed) {
+      setConsentError(true);
+      return;
+    }
+    router.push("/create");
+  };
 
   // 페르소나 보유 시 대화 화면으로 리다이렉트
   useEffect(() => {
@@ -143,6 +162,16 @@ export default function Onboarding() {
               </button>
             ))}
           </div>
+          {/* "예" 선택 시 안내 — 진행은 차단하지 않음 */}
+          {refusal === "yes" && (
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-subtle text-[14px] font-medium leading-6 tracking-brand"
+            >
+              고인의 뜻을 한 번 더 생각해 주셔서 감사해요. 신중하게 결정해 주세요
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-[14px] items-start w-full">
@@ -158,6 +187,7 @@ export default function Onboarding() {
                 "데이터는 AI 학습에 사용되지 않습니다",
                 "언제든 전체 데이터를 내보낼 수 있습니다",
                 "고인의 음성과 사진은 이 서비스 외 다른 목적으로 사용 되지 않습니다",
+                "모든 AI 추론은 자체 서버에서만 이루어지며 외부 AI API로 데이터가 송출되지 않습니다",
               ].map((text) => (
                 <div key={text} className="flex items-start justify-between w-full">
                   <p className="text-foreground text-[14px] font-medium leading-6 flex-1 pr-4">{text}</p>
@@ -167,18 +197,28 @@ export default function Onboarding() {
             </div>
 
             <button
-              onClick={() => setAgreed(!agreed)}
+              onClick={handleToggleAgreed}
               className={`flex items-center justify-center px-[30px] py-[10px] rounded-card w-full cursor-pointer transition-colors ${
                 agreed ? "bg-muted" : "bg-placeholder"
               }`}
             >
               <span className="text-white text-[16px] font-medium tracking-brand">네, 동의합니다</span>
             </button>
+
+            {/* 약관 미동의 상태로 다음을 누른 경우의 안내 */}
+            {consentError && (
+              <p
+                role="alert"
+                className="text-foreground text-[14px] font-medium leading-6 tracking-brand"
+              >
+                약관에 동의해야 진행할 수 있습니다
+              </p>
+            )}
           </div>
         </div>
 
-        {/* 약관 동의 시 페르소나 생성 플로우로 이동 */}
-        <PrimaryButton active={agreed} onClick={() => agreed && router.push("/create")}>
+        {/* 약관 동의 시 페르소나 생성 플로우로 이동, 미동의 시 에러 노출 */}
+        <PrimaryButton active={agreed} onClick={handleNext}>
           다음
         </PrimaryButton>
       </div>
