@@ -90,7 +90,7 @@ export default function Onboarding() {
   // 음성 자료 안내 단계
   if (step === "voice") {
     return (
-      <PageLayout className="flex flex-col gap-2 pt-8 pb-8 px-6 relative">
+      <PageLayout className="flex flex-col gap-2 items-start pt-8 pb-8 px-6">
         <div className="flex items-center w-full">
           <span className="text-[24px] font-bold text-black tracking-brand">Yeoun</span>
         </div>
