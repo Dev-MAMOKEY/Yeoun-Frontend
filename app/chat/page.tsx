@@ -116,6 +116,8 @@ export default function Chat() {
   const abortRef = useRef<AbortController | null>(null);
   // 전송 실패 시 재시도용 마지막 녹음
   const lastBlobRef = useRef<Blob | null>(null);
+  // 위기 카드 활성 여부 — onstop에서 sendMessage skip을 결정할 때 React state 대신 ref로 참조
+  const crisisActiveRef = useRef(false);
   // idle 더블 버퍼용 video 엘리먼트 ref
   const idleARef = useRef<HTMLVideoElement>(null);
   const idleBRef = useRef<HTMLVideoElement>(null);
@@ -347,11 +349,22 @@ export default function Chat() {
       }
       case "crisis":
         // 위기 키워드 감지 — 안내 카드 오버레이 + 2분 쿨다운 초기화
+        crisisActiveRef.current = true;
         setCrisisCooldownSec(CRISIS_COOLDOWN_SEC);
         setCrisisMessage(
           ev.data ||
             "많이 힘드신 것 같아요. 도움이 필요하시면 자살예방상담전화 109로 연락해 주세요.",
         );
+        // 진행 중인 녹음·응답 요청은 즉시 중단해 추가 위기 트리거를 막는다
+        if (
+          mediaRecorderRef.current &&
+          mediaRecorderRef.current.state !== "inactive"
+        ) {
+          stopRecording();
+        }
+        abortRef.current?.abort();
+        clearResponseTimers();
+        setResponseState("idle");
         break;
       default:
         // 알 수 없는 이벤트는 무시
@@ -478,6 +491,9 @@ export default function Chat() {
 
         streamRef.current?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
+
+        // 위기 카드 활성 중에는 녹음 결과를 전송하지 않는다
+        if (crisisActiveRef.current) return;
 
         // 녹음이 끝나면 곧바로 메시지 전송
         if (blob.size > 0) sendMessage(blob);
@@ -730,6 +746,7 @@ export default function Chat() {
             <button
               type="button"
               onClick={() => {
+                crisisActiveRef.current = false;
                 setCrisisMessage(null);
                 setCrisisCooldownSec(CRISIS_COOLDOWN_SEC);
               }}
