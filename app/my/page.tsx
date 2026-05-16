@@ -33,6 +33,9 @@ export default function My() {
   // 페르소나 정보 카드용 — /users/me 응답에서 첫 페르소나 요약을 보관
   const [personaSummary, setPersonaSummary] = useState<PersonaSummary | null>(null);
 
+  // 로그아웃 확인 다이얼로그 상태
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
   // 계정 삭제용 비밀번호 입력 시트 상태
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [password, setPassword] = useState("");
@@ -204,7 +207,8 @@ export default function My() {
         </div>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutDialog(true)}
+          disabled={loggingOut}
           className="bg-surface-muted flex items-center justify-center px-5 py-[13px] rounded-card w-[346px] cursor-pointer"
         >
           <span className="text-muted text-[16px] font-medium tracking-brand">
@@ -225,6 +229,46 @@ export default function My() {
 
         <BottomNav />
       </div>
+
+      {/* 로그아웃 확인 다이얼로그 */}
+      {showLogoutDialog && (
+        <div
+          className="fixed inset-0 bg-[rgba(19,19,19,0.3)] z-40 flex items-center justify-center px-6"
+          onClick={() => setShowLogoutDialog(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="로그아웃 확인"
+        >
+          <div
+            className="bg-white rounded-sheet px-6 py-6 max-w-[320px] w-full flex flex-col gap-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-foreground text-[18px] font-semibold tracking-brand text-center">
+              로그아웃하시겠습니까?
+            </h2>
+            <div className="flex gap-[10px] w-full">
+              <button
+                onClick={() => setShowLogoutDialog(false)}
+                className="flex-1 bg-surface-muted flex items-center justify-center px-5 py-[13px] rounded-card cursor-pointer"
+              >
+                <span className="text-muted text-[16px] font-medium tracking-brand">취소</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowLogoutDialog(false);
+                  handleLogout();
+                }}
+                disabled={loggingOut}
+                className="flex-1 bg-foreground flex items-center justify-center px-5 py-[13px] rounded-card cursor-pointer"
+              >
+                <span className="text-white text-[16px] font-medium tracking-brand">
+                  {loggingOut ? "로그아웃 중..." : "로그아웃"}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 계정 삭제 — 비밀번호 확인 시트 */}
       {showDeleteSheet && (
