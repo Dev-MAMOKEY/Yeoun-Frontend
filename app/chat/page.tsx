@@ -118,6 +118,8 @@ export default function Chat() {
   const lastBlobRef = useRef<Blob | null>(null);
   // 위기 카드 활성 여부 — onstop에서 sendMessage skip을 결정할 때 React state 대신 ref로 참조
   const crisisActiveRef = useRef(false);
+  // 쿨다운 만료 시각(epoch ms) — 백그라운드 탭 throttling에도 정확한 남은 시간을 계산하기 위함
+  const crisisCooldownEndRef = useRef<number>(0);
   // idle 더블 버퍼용 video 엘리먼트 ref
   const idleARef = useRef<HTMLVideoElement>(null);
   const idleBRef = useRef<HTMLVideoElement>(null);
@@ -226,17 +228,16 @@ export default function Chat() {
     video?.play().catch(() => {});
   }, [activeSlot, slotSrcs]);
 
-  // 위기 카드 노출 동안 매 초 쿨다운 감소 — 초기값은 메시지를 set 하는 시점에 함께 초기화
+  // 위기 카드 노출 동안 매 초 쿨다운 감소 — Date.now() 기반으로 백그라운드 탭에서도 정확
   useEffect(() => {
     if (!crisisMessage) return;
     const id = window.setInterval(() => {
-      setCrisisCooldownSec((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(id);
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remaining = Math.max(
+        0,
+        Math.ceil((crisisCooldownEndRef.current - Date.now()) / 1000),
+      );
+      setCrisisCooldownSec(remaining);
+      if (remaining === 0) window.clearInterval(id);
     }, 1000);
     return () => window.clearInterval(id);
   }, [crisisMessage]);
@@ -350,6 +351,7 @@ export default function Chat() {
       case "crisis":
         // 위기 키워드 감지 — 안내 카드 오버레이 + 2분 쿨다운 초기화
         crisisActiveRef.current = true;
+        crisisCooldownEndRef.current = Date.now() + CRISIS_COOLDOWN_SEC * 1000;
         setCrisisCooldownSec(CRISIS_COOLDOWN_SEC);
         setCrisisMessage(
           ev.data ||
@@ -747,6 +749,7 @@ export default function Chat() {
               type="button"
               onClick={() => {
                 crisisActiveRef.current = false;
+                crisisCooldownEndRef.current = 0;
                 setCrisisMessage(null);
                 setCrisisCooldownSec(CRISIS_COOLDOWN_SEC);
               }}
