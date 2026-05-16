@@ -131,17 +131,33 @@ function BasicStep() {
 
   const [form, setForm] = useState({ name: "", nickname: "" });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  // 필드별 분리 에러 — 이름·호칭은 FormField error prop, 사진은 별도 노출
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    // 해당 필드 에러만 초기화
+    if (e.target.name === "name") setNameError(null);
+    if (e.target.name === "nickname") setNicknameError(null);
     setError(null);
   }
 
   async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    // 원본 크기 기준으로 10MB 초과 차단 (리사이즈 전 검증)
+    if (file.size > 10 * 1024 * 1024) {
+      // 이전에 선택된 정상 파일이 stale 상태로 남지 않도록 함께 초기화
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setPhotoError("파일 크기가 너무 큽니다 (최대 10MB)");
+      e.target.value = "";
+      return;
+    }
     // 업로드 전 리사이즈·압축
     const resized = await resizeImage(file);
     setPhotoFile(resized);
@@ -151,19 +167,20 @@ function BasicStep() {
       if (typeof reader.result === "string") setPhotoPreview(reader.result);
     };
     reader.readAsDataURL(resized);
+    setPhotoError(null);
     setError(null);
   }
 
   async function handleNext() {
     if (submitting) return;
-    if (!form.name.trim() || !form.nickname.trim()) {
-      setError("고인의 이름과 호칭을 입력해주세요.");
-      return;
-    }
-    if (!photoFile) {
-      setError("고인의 사진을 업로드해주세요.");
-      return;
-    }
+    // 이름·호칭·사진 각각 검증해 필드별 에러 노출
+    const nextNameError = !form.name.trim() ? "고인의 이름을 입력해주세요" : null;
+    const nextNicknameError = !form.nickname.trim() ? "나를 부를 호칭을 입력해주세요" : null;
+    const nextPhotoError = !photoFile ? "사진은 페르소나 생성에 필요합니다" : null;
+    setNameError(nextNameError);
+    setNicknameError(nextNicknameError);
+    setPhotoError(nextPhotoError);
+    if (nextNameError || nextNicknameError || nextPhotoError) return;
 
     setSubmitting(true);
     setError(null);
@@ -181,9 +198,9 @@ function BasicStep() {
       }
       const created = json.data;
 
-      // 2단계: 사진 업로드
+      // 2단계: 사진 업로드 (검증 통과 후이므로 photoFile 존재 보장)
       const fd = new FormData();
-      fd.append("file", photoFile);
+      fd.append("file", photoFile as File);
       const photoRes = await fetch(`/api/persona/${created.id}/photo`, {
         method: "POST",
         body: fd,
@@ -228,13 +245,30 @@ function BasicStep() {
               <span className="text-foreground text-[16px] font-medium leading-6">사진 업로드</span>
             </>
           )}
-          <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={handlePhoto}
+            aria-invalid={photoError ? true : undefined}
+            aria-describedby={photoError ? "photo-error" : undefined}
+          />
         </label>
 
         <div className="flex gap-1 items-center justify-center">
           <WarningIcon />
           <span className="text-foreground text-[12px] font-medium leading-6">얼굴이 선명하게 담긴 사진을 올려주세요</span>
         </div>
+
+        {photoError && (
+          <p
+            id="photo-error"
+            role="alert"
+            className="text-[#c44] text-[13px] font-medium w-full pl-3"
+          >
+            {photoError}
+          </p>
+        )}
 
         <FormField
           label="고인의 이름"
@@ -243,6 +277,7 @@ function BasicStep() {
           value={form.name}
           onChange={handleChange}
           placeholder="고인의 이름을 입력해주세요"
+          error={nameError}
         />
         <FormField
           label="호칭"
@@ -251,6 +286,7 @@ function BasicStep() {
           value={form.nickname}
           onChange={handleChange}
           placeholder="나를 부를 호칭을 입력해주세요"
+          error={nicknameError}
         />
       </div>
 
