@@ -7,6 +7,7 @@ import { BottomNav } from "../components/BottomNav";
 import { useAuthStore } from "@/store/authStore";
 import { usePersonaStore } from "@/store/personaStore";
 import { useSessionStore } from "@/store/sessionStore";
+import { authedFetch } from "@/lib/client-fetch";
 import type { RsData, UserMeResponse } from "@/lib/types";
 
 export default function My() {
@@ -63,7 +64,7 @@ export default function My() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/users/me");
+        const res = await authedFetch("/api/users/me");
         const json = (await res.json()) as RsData<UserMeResponse>;
         if (cancelled || !json.success || !json.data) return;
 
@@ -101,7 +102,7 @@ export default function My() {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await authedFetch("/api/auth/logout", { method: "POST" });
     } catch {
       // 서버 실패와 무관하게 로컬 상태는 정리
     } finally {
@@ -121,7 +122,7 @@ export default function My() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      const res = await fetch("/api/users/me", {
+      const res = await authedFetch("/api/users/me", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
