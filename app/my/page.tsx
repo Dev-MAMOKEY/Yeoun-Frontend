@@ -286,7 +286,8 @@ export default function My() {
 
             <div className="pt-[9px] flex flex-col gap-1">
               <h2 className="text-foreground text-[18px] font-semibold tracking-brand">정말 계정을 삭제하시겠어요?</h2>
-              <p className="text-subtle text-[14px] font-medium">삭제 후에는 되돌릴 수 없어요. 비밀번호를 입력해주세요.</p>
+              <p className="text-subtle text-[14px] font-medium">계정과 모든 데이터가 즉시 영구 삭제되며 복구할 수 없습니다</p>
+              <p className="text-subtle text-[14px] font-medium">비밀번호를 입력해주세요</p>
             </div>
 
             <input
