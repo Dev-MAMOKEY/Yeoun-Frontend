@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PageLayout } from "../components/ui/PageLayout";
 import { BottomNav } from "../components/BottomNav";
 import { HeadphoneIcon } from "../components/icons";
 import { useSessionStore } from "@/store/sessionStore";
@@ -620,8 +621,8 @@ export default function Chat() {
 
   return (
     <div className="min-h-screen bg-background flex justify-center">
-      <div className="w-full max-w-app flex flex-col gap-2 items-start pt-16 pb-[120px] relative">
-        <div className="flex items-center px-6 w-full shrink-0">
+      <PageLayout className="flex flex-col gap-2 items-start pt-8 pb-8 px-6">
+        <div className="flex items-center w-full">
           <span className="text-[24px] font-bold text-black tracking-brand">Yeoun</span>
         </div>
 
@@ -749,7 +750,7 @@ export default function Chat() {
         )}
 
         <BottomNav />
-      </div>
+      </PageLayout>
 
       {/* 위기 안내 카드 오버레이 */}
       {crisisMessage && (
