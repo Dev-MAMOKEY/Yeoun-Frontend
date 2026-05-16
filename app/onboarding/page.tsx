@@ -160,6 +160,7 @@ export default function Onboarding() {
                 "데이터는 AI 학습에 사용되지 않습니다",
                 "언제든 전체 데이터를 내보낼 수 있습니다",
                 "고인의 음성과 사진은 이 서비스 외 다른 목적으로 사용 되지 않습니다",
+                "모든 AI 추론은 자체 서버에서만 이루어지며 외부 AI API로 데이터가 송출되지 않습니다",
               ].map((text) => (
                 <div key={text} className="flex items-start justify-between w-full">
                   <p className="text-foreground text-[14px] font-medium leading-6 flex-1 pr-4">{text}</p>
