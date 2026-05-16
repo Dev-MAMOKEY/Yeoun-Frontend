@@ -512,8 +512,10 @@ function WaitingStep() {
   const [errorKind, setErrorKind] = useState<"failed" | "network" | null>(null);
   const [slow, setSlow] = useState(false); // 2분 초과 여부
   const [retryKey, setRetryKey] = useState(0); // 폴링 재시작 트리거
+  // 시작 후 경과 초 — 진행 상황 서브 메시지의 시간 기반 분기에 사용
+  const [elapsedSec, setElapsedSec] = useState(0);
 
-  // 10초 간격 상태 폴링
+  // 5초 간격 상태 폴링
   useEffect(() => {
     if (!persona) return;
     let cancelled = false;
@@ -557,12 +559,29 @@ function WaitingStep() {
     }
 
     poll(); // 즉시 1회 실행
-    interval = setInterval(poll, 10000);
+    interval = setInterval(poll, 5000);
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
     };
   }, [persona, setPersona, setCreationStep, router, retryKey]);
+
+  // 1초 간격 경과 시간 카운터 — 진행 상황 서브 메시지를 시간으로 갱신
+  useEffect(() => {
+    const startedAt = Date.now();
+    const tick = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [retryKey]);
+
+  // 경과 시간에 따라 진행 상황 카드 서브 메시지 결정
+  const progressMessage =
+    elapsedSec <= 30
+      ? "목소리를 담고 있어요.."
+      : elapsedSec <= 60
+        ? "표정을 새기고 있어요.."
+        : "곧 만날 수 있을 거예요";
 
   // 생성 실패 → 처음부터 다시
   function handleRestart() {
@@ -625,8 +644,10 @@ function WaitingStep() {
       <ProgressBar value={1} pulse />
 
       <div className="bg-white flex flex-col gap-[14px] items-center px-5 py-[40px] rounded-sheet w-full">
-        <p className="text-foreground text-[18px] font-semibold leading-6">페르소나를 만날 준비를 하고 있어요</p>
-        <p className="text-foreground text-[14px] font-medium leading-6">약 5분 정도 걸릴거예요</p>
+        <p className="text-foreground text-[18px] font-semibold leading-6">
+          {persona ? `${persona.name}님을 만날 준비를 하고 있어요` : "페르소나를 만날 준비를 하고 있어요"}
+        </p>
+        <p className="text-foreground text-[14px] font-medium leading-6">약 1~2분 정도 걸릴 거예요. 잠시 기다려 주세요</p>
 
         <div className="border-2 border-placeholder bg-surface-soft rounded-tile size-[170px] overflow-hidden">
           {photoPreview && (
@@ -640,7 +661,7 @@ function WaitingStep() {
 
         <div className="flex items-center justify-center">
           <p className="text-foreground text-[14px] font-medium leading-6">
-            {slow ? "조금 더 걸리고 있어요. 잠시 후 다시 확인해주세요" : "잠시만 기다려주세요"}
+            {slow ? "조금 더 걸리고 있어요. 잠시 후 다시 확인해 주세요" : "잠시만 기다려주세요"}
           </p>
         </div>
 
@@ -650,19 +671,17 @@ function WaitingStep() {
           </div>
           <div className="flex flex-col gap-1">
             <p className="text-foreground text-[16px] font-semibold tracking-brand">상태</p>
-            <p className="text-subtle text-[14px] font-medium tracking-brand">목소리를 담고 있어요..</p>
+            <p className="text-subtle text-[14px] font-medium tracking-brand">{status === "PROCESSING" ? "기억을 새기고 있어요.." : "준비하고 있어요.."}</p>
           </div>
         </div>
-
+        {/* status 변수는 상태 카드에서 사용되며, 진행 상황 카드는 시간 기반 메시지를 노출 */}
         <div className="bg-surface-strong flex gap-[14px] items-start px-4 py-[22px] rounded-card w-[314px] animate-pulse">
           <div className="bg-white flex items-center justify-center p-[6px] rounded-[4px] size-[40px] shrink-0">
             <ImageIcon />
           </div>
           <div className="flex flex-col gap-1">
             <p className="text-foreground text-[16px] font-semibold tracking-brand">진행 상황</p>
-            <p className="text-subtle text-[14px] font-medium tracking-brand">
-              {status === "PROCESSING" ? "기억을 새기고 있어요.." : "준비하고 있어요.."}
-            </p>
+            <p className="text-subtle text-[14px] font-medium tracking-brand">{progressMessage}</p>
           </div>
         </div>
 
