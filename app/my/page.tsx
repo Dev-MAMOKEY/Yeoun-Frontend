@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../components/BottomNav";
 import { ArrowRightIcon } from "../components/icons";
@@ -35,6 +35,20 @@ export default function My() {
 
   // 로그아웃 확인 다이얼로그 상태
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
+  // 안내 토스트 (비밀번호 변경 등 미구현 기능 안내용)
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showToast(message: string) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast(message);
+    toastTimerRef.current = setTimeout(() => setToast(null), 1800);
+  }
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   // 계정 삭제용 비밀번호 입력 시트 상태
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
@@ -160,7 +174,13 @@ export default function My() {
               </div>
             </div>
 
-            <button className="flex gap-2 items-center justify-center px-3 w-full cursor-pointer">
+            <button
+              type="button"
+              onClick={() => showToast("준비 중입니다")}
+              aria-disabled="true"
+              title="준비 중입니다"
+              className="flex gap-2 items-center justify-center px-3 w-full cursor-not-allowed opacity-60"
+            >
               <span className="flex-1 text-foreground text-[16px] font-semibold tracking-brand text-left">비밀번호 변경하기</span>
               <ArrowRightIcon color="var(--color-foreground)" />
             </button>
@@ -229,6 +249,17 @@ export default function My() {
 
         <BottomNav />
       </div>
+
+      {/* 안내 토스트 */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed left-1/2 -translate-x-1/2 bottom-[120px] z-50 bg-[rgba(19,19,19,0.85)] text-white text-[14px] font-medium px-4 py-[10px] rounded-card"
+        >
+          {toast}
+        </div>
+      )}
 
       {/* 로그아웃 확인 다이얼로그 */}
       {showLogoutDialog && (
