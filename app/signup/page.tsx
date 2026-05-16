@@ -103,62 +103,68 @@ export default function Signup() {
   }
 
   return (
-    <PageLayout className="flex flex-col gap-[14px] items-start px-6 pt-6 pb-10">
-      <div className="flex items-end px-5 w-full">
-        <h1 className="text-foreground text-[18px] font-semibold tracking-brand">회원가입</h1>
+    <PageLayout className="flex flex-col gap-2 items-start pt-8 pb-8 px-6">
+      <div className="flex items-center w-full">
+        <span className="text-[24px] font-bold text-black tracking-brand">Yeoun</span>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white flex flex-col gap-[18px] items-center px-5 py-[30px] rounded-sheet w-full"
-      >
-        <FormField
-          label="이메일"
-          id="email"
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={handleChange}
-          placeholder="이메일 주소를 입력해주세요"
-          error={errors.email}
-        />
-        <FormField
-          label="비밀번호"
-          id="password"
-          name="password"
-          type="password"
-          value={form.password}
-          onChange={handleChange}
-          placeholder="비밀번호를 입력해주세요"
-          error={errors.password}
-        />
-        <FormField
-          label="비밀번호 확인"
-          id="passwordConfirm"
-          name="passwordConfirm"
-          type="password"
-          value={form.passwordConfirm}
-          onChange={handleChange}
-          placeholder="비밀번호를 입력해주세요"
-          error={errors.passwordConfirm}
-        />
-
-        {/* 필드 외 일반 API 오류만 폼 하단에 표시 */}
-        {submitError && (
-          <p className="text-[#c44] text-[13px] font-medium w-full pl-3">{submitError}</p>
-        )}
-
-        <div className="flex flex-col items-start pb-[2px] pt-[14px] w-full">
-          <PrimaryButton type="submit" active={!submitting}>
-            {submitting ? "가입 중..." : "가입하기"}
-          </PrimaryButton>
+      <div className="flex-1 flex flex-col gap-[14px] items-start justify-center w-full py-8">
+        <div className="flex items-end px-5 w-full">
+          <h1 className="text-foreground text-[18px] font-semibold tracking-brand">회원가입</h1>
         </div>
 
-        <div className="flex gap-[6px] items-center text-[14px] font-medium tracking-brand">
-          <span className="text-subtle">이미 회원이신가요?</span>
-          <Link href="/login" className="text-foreground underline">로그인하기</Link>
-        </div>
-      </form>
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white flex flex-col gap-[18px] items-center px-5 py-[30px] rounded-sheet w-full"
+        >
+          <FormField
+            label="이메일"
+            id="email"
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="이메일 주소를 입력해주세요"
+            error={errors.email}
+          />
+          <FormField
+            label="비밀번호"
+            id="password"
+            name="password"
+            type="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="비밀번호를 입력해주세요"
+            error={errors.password}
+          />
+          <FormField
+            label="비밀번호 확인"
+            id="passwordConfirm"
+            name="passwordConfirm"
+            type="password"
+            value={form.passwordConfirm}
+            onChange={handleChange}
+            placeholder="비밀번호를 입력해주세요"
+            error={errors.passwordConfirm}
+          />
+
+          {/* 필드 외 일반 API 오류만 폼 하단에 표시 */}
+          {submitError && (
+            <p className="text-[#c44] text-[13px] font-medium w-full pl-3">{submitError}</p>
+          )}
+
+          <div className="flex flex-col items-start pb-[2px] pt-[14px] w-full">
+            <PrimaryButton type="submit" active={!submitting}>
+              {submitting ? "가입 중..." : "가입하기"}
+            </PrimaryButton>
+          </div>
+
+          <div className="flex gap-[6px] items-center text-[14px] font-medium tracking-brand">
+            <span className="text-subtle">이미 회원이신가요?</span>
+            <Link href="/login" className="text-foreground underline">로그인하기</Link>
+          </div>
+        </form>
+      </div>
     </PageLayout>
   );
 }
