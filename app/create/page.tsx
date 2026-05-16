@@ -151,6 +151,9 @@ function BasicStep() {
     if (!file) return;
     // 원본 크기 기준으로 10MB 초과 차단 (리사이즈 전 검증)
     if (file.size > 10 * 1024 * 1024) {
+      // 이전에 선택된 정상 파일이 stale 상태로 남지 않도록 함께 초기화
+      setPhotoFile(null);
+      setPhotoPreview(null);
       setPhotoError("파일 크기가 너무 큽니다 (최대 10MB)");
       e.target.value = "";
       return;
@@ -242,7 +245,14 @@ function BasicStep() {
               <span className="text-foreground text-[16px] font-medium leading-6">사진 업로드</span>
             </>
           )}
-          <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={handlePhoto}
+            aria-invalid={photoError ? true : undefined}
+            aria-describedby={photoError ? "photo-error" : undefined}
+          />
         </label>
 
         <div className="flex gap-1 items-center justify-center">
@@ -251,7 +261,13 @@ function BasicStep() {
         </div>
 
         {photoError && (
-          <p className="text-[#c44] text-[13px] font-medium w-full pl-3">{photoError}</p>
+          <p
+            id="photo-error"
+            role="alert"
+            className="text-[#c44] text-[13px] font-medium w-full pl-3"
+          >
+            {photoError}
+          </p>
         )}
 
         <FormField
