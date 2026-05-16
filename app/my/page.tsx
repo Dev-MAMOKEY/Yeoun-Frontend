@@ -7,7 +7,18 @@ import { ArrowRightIcon } from "../components/icons";
 import { useAuthStore } from "@/store/authStore";
 import { usePersonaStore } from "@/store/personaStore";
 import { useSessionStore } from "@/store/sessionStore";
-import type { RsData, UserMeResponse } from "@/lib/types";
+import type { PersonaSummary, RsData, UserMeResponse } from "@/lib/types";
+
+// KST(UTC+9) 기준 'YYYY.MM.DD' 포맷으로 변환
+function formatKstDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const yyyy = kst.getUTCFullYear();
+  const mm = String(kst.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(kst.getUTCDate()).padStart(2, "0");
+  return `${yyyy}.${mm}.${dd}`;
+}
 
 export default function My() {
   const router = useRouter();
@@ -18,6 +29,9 @@ export default function My() {
   const setPersona = usePersonaStore((s) => s.setPersona);
   const clearPersona = usePersonaStore((s) => s.clearPersona);
   const clearSession = useSessionStore((s) => s.clearSession);
+
+  // 페르소나 정보 카드용 — /users/me 응답에서 첫 페르소나 요약을 보관
+  const [personaSummary, setPersonaSummary] = useState<PersonaSummary | null>(null);
 
   // 계정 삭제용 비밀번호 입력 시트 상태
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
@@ -47,6 +61,9 @@ export default function My() {
             nickname: first.nickname,
             status: first.status === "READY" ? "ready" : "draft",
           });
+          setPersonaSummary(first);
+        } else {
+          setPersonaSummary(null);
         }
       } catch {
         // 조회 실패 시 화면은 그대로 두고 무시
@@ -144,6 +161,45 @@ export default function My() {
               <span className="flex-1 text-foreground text-[16px] font-semibold tracking-brand text-left">비밀번호 변경하기</span>
               <ArrowRightIcon color="var(--color-foreground)" />
             </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-[10px] items-start w-full">
+          <div className="pl-3">
+            <h2 className="text-foreground text-[18px] font-semibold leading-6">페르소나 정보</h2>
+          </div>
+          <div className="bg-white flex flex-col gap-[22px] items-start justify-center px-5 py-[30px] rounded-sheet w-full">
+            {personaSummary ? (
+              <>
+                <div className="flex flex-col gap-[10px] w-full">
+                  <div className="flex items-center justify-center pl-3 w-full">
+                    <span className="flex-1 text-foreground text-[16px] font-semibold tracking-brand">이름</span>
+                  </div>
+                  <div className="bg-surface flex items-center px-5 py-[10px] rounded-card w-full">
+                    <span className="text-[#8a8a8a] text-[16px] font-medium tracking-brand">
+                      {personaSummary.name}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-[10px] w-full">
+                  <div className="flex items-center justify-center pl-3 w-full">
+                    <span className="flex-1 text-foreground text-[16px] font-semibold tracking-brand">생성일</span>
+                  </div>
+                  <div className="bg-surface flex items-center px-5 py-[10px] rounded-card w-full">
+                    <span className="text-[#8a8a8a] text-[16px] font-medium tracking-brand">
+                      {formatKstDate(personaSummary.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center pl-3 w-full">
+                <span className="text-[#8a8a8a] text-[16px] font-medium tracking-brand">
+                  등록된 페르소나가 없어요
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
