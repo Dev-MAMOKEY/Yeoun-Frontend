@@ -7,6 +7,7 @@ import { PageLayout } from "../components/ui/PageLayout";
 import { FormField } from "../components/ui/FormField";
 import { PrimaryButton } from "../components/ui/PrimaryButton";
 import { useAuthStore } from "@/store/authStore";
+import { usePersonaStore } from "@/store/personaStore";
 import type { RsData, UserMeResponse } from "@/lib/types";
 
 // 이메일 형식 검사용 정규식
@@ -16,6 +17,8 @@ export default function Login() {
   const router = useRouter();
   // authStore의 setUser 액션 (로그인 성공 시 사용자 정보 저장)
   const setUser = useAuthStore((s) => s.setUser);
+  // 로그인 직후 페르소나가 있으면 store에 캐싱해 chat의 중복 페치 방지
+  const setPersona = usePersonaStore((s) => s.setPersona);
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
@@ -55,19 +58,31 @@ export default function Login() {
         return;
       }
 
-      // 2) 내 정보 조회 — authStore에 사용자 정보 저장 (실패해도 로그인은 성공이므로 진행)
+      // 2) 내 정보 조회 — 페르소나 보유 여부를 같이 판정해 다음 화면을 정한다
+      let hasPersona = false;
       try {
         const meRes = await fetch("/api/users/me");
         const meJson = (await meRes.json()) as RsData<UserMeResponse>;
         if (meJson.success && meJson.data) {
           setUser({ userId: meJson.data.id, email: meJson.data.email });
+          const first = meJson.data.personas[0];
+          if (first) {
+            hasPersona = true;
+            // chat 진입 시 즉시 사용할 수 있도록 store에 캐싱
+            setPersona({
+              personaId: first.id,
+              name: first.name,
+              nickname: first.nickname,
+              status: first.status === "READY" ? "ready" : "draft",
+            });
+          }
         }
       } catch {
-        // 내 정보 조회 실패는 무시
+        // 내 정보 조회 실패는 무시 — 안전망으로 /chat이 다시 페르소나 체크
       }
 
-      // 3) 대화 화면으로 이동 — 페르소나가 없으면 chat에서 온보딩으로 리다이렉트
-      router.push("/chat");
+      // 3) 명세대로 페르소나 보유 시 홈, 아니면 음성 자료 게이트로 1회 라우팅
+      router.push(hasPersona ? "/chat" : "/onboarding");
     } catch {
       setError("이메일 또는 비밀번호를 확인해주세요.");
     } finally {
