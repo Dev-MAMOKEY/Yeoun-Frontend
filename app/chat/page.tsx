@@ -8,6 +8,7 @@ import { BottomNav } from "../components/BottomNav";
 import { HeadphoneIcon } from "../components/icons";
 import { useSessionStore } from "@/store/sessionStore";
 import { usePersonaStore } from "@/store/personaStore";
+import { authedFetch } from "@/lib/client-fetch";
 import type { RsData, SessionStartResponse, UserMeResponse } from "@/lib/types";
 
 const WAVEFORM_HEIGHTS = [
@@ -144,7 +145,7 @@ export default function Chat() {
         // 1) personaId 확보 — store에 없으면 내 정보로 조회
         let pid = persona?.personaId ?? null;
         if (!pid) {
-          const meRes = await fetch("/api/users/me");
+          const meRes = await authedFetch("/api/users/me");
           const meJson = (await meRes.json()) as RsData<UserMeResponse>;
           pid = meJson.success ? (meJson.data?.personas[0]?.id ?? null) : null;
         }
@@ -157,7 +158,7 @@ export default function Chat() {
         setPersonaId(pid);
 
         // 2) 대화 세션 시작
-        const startRes = await fetch("/api/session/start", {
+        const startRes = await authedFetch("/api/session/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ personaId: pid }),
@@ -168,7 +169,7 @@ export default function Chat() {
         }
 
         // 3) idle 영상 목록 조회 (순환 재생용)
-        const clipsRes = await fetch(`/api/persona/${pid}/idle-clips`);
+        const clipsRes = await authedFetch(`/api/persona/${pid}/idle-clips`);
         const clipsJson = (await clipsRes.json()) as RsData<{ idx: number }[]>;
         if (!cancelled && clipsJson.success && clipsJson.data) {
           setIdleClips(clipsJson.data.map((c) => c.idx));
@@ -472,7 +473,7 @@ export default function Chat() {
     try {
       const fd = new FormData();
       fd.append("audio", blob, "message.webm");
-      const res = await fetch(`/api/session/${sid}/message`, {
+      const res = await authedFetch(`/api/session/${sid}/message`, {
         method: "POST",
         body: fd,
         signal: controller.signal,
