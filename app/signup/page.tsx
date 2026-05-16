@@ -43,18 +43,18 @@ export default function Signup() {
     e.preventDefault();
     if (submitting) return; // 중복 제출 방지
 
-    // 클라이언트 측 유효성 검사 — 명세 문구 그대로
+    // 클라이언트 측 유효성 검사 — 명세 문구 그대로(마침표 없음)
     const nextErrors = {
       email: !EMAIL_REGEX.test(form.email)
-        ? "올바른 이메일 형식이 아닙니다."
+        ? "올바른 이메일 형식이 아닙니다"
         : null,
       password:
         form.password.length < 8
-          ? "비밀번호는 8자 이상 입력해주세요."
+          ? "비밀번호는 8자 이상 입력해주세요"
           : null,
       passwordConfirm:
         form.password.length >= 8 && form.password !== form.passwordConfirm
-          ? "비밀번호가 일치하지 않습니다."
+          ? "비밀번호가 일치하지 않습니다"
           : null,
     };
     setErrors(nextErrors);
@@ -83,7 +83,7 @@ export default function Signup() {
         if (/EMAIL|DUPLICATE|EXIST/i.test(code)) {
           setErrors((prev) => ({
             ...prev,
-            email: "이미 사용 중인 이메일입니다.",
+            email: "이미 사용 중인 이메일입니다",
           }));
         } else {
           setSubmitError(
