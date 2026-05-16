@@ -17,6 +17,7 @@ import {
   ImageIcon,
 } from "../components/icons";
 import { usePersonaStore } from "@/store/personaStore";
+import { authedFetch } from "@/lib/client-fetch";
 import type {
   RsData,
   PersonaResponse,
@@ -221,7 +222,7 @@ function BasicStep() {
     setError(null);
     try {
       // 1단계: 페르소나 생성
-      const res = await fetch("/api/persona", {
+      const res = await authedFetch("/api/persona", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.name, nickname: form.nickname }),
@@ -236,7 +237,7 @@ function BasicStep() {
       // 2단계: 사진 업로드 (검증 통과 후이므로 photoFile 존재 보장)
       const fd = new FormData();
       fd.append("file", photoFile as File);
-      const photoRes = await fetch(`/api/persona/${created.id}/photo`, {
+      const photoRes = await authedFetch(`/api/persona/${created.id}/photo`, {
         method: "POST",
         body: fd,
       });
@@ -416,7 +417,7 @@ function VoiceStep() {
       for (const entry of files) {
         const fd = new FormData();
         fd.append("file", entry.file);
-        const res = await fetch(`/api/persona/${persona.personaId}/voice`, {
+        const res = await authedFetch(`/api/persona/${persona.personaId}/voice`, {
           method: "POST",
           body: fd,
         });
@@ -541,7 +542,7 @@ function InterviewStep() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/persona/${persona.personaId}/interview`, {
+      const res = await authedFetch(`/api/persona/${persona.personaId}/interview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -639,7 +640,7 @@ function WaitingStep() {
 
     async function poll() {
       try {
-        const res = await fetch(`/api/persona/${persona!.personaId}/status`);
+        const res = await authedFetch(`/api/persona/${persona!.personaId}/status`);
         const json = (await res.json()) as RsData<PersonaStatusResponse>;
         if (cancelled) return;
 

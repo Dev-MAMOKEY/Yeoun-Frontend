@@ -37,8 +37,14 @@ export function unauthorized() {
 }
 
 // try/catch 블록에서 에러를 표준 응답으로 변환
-export function toErrorResponse(err: unknown, context: string) {
+// 401(인증 만료/무효)인 경우 인증 쿠키를 함께 정리해 클라이언트가 강제 로그아웃에 진입하도록 한다
+export async function toErrorResponse(err: unknown, context: string) {
   if (err instanceof ApiError) {
+    if (err.status === 401) {
+      const cookieStore = await cookies();
+      cookieStore.delete("accessToken");
+      cookieStore.delete("refreshToken");
+    }
     return fail(err.code, err.message, err.status);
   }
   console.error(`[${context}] 처리 실패`, err);

@@ -12,6 +12,7 @@ import {
   CheckIcon,
 } from "../components/icons";
 import { usePersonaStore } from "@/store/personaStore";
+import { authedFetch } from "@/lib/client-fetch";
 import type { RsData } from "@/lib/types";
 
 // 온보딩 내부 단계 — 음성 자료 안내 → 약관 동의
@@ -58,7 +59,7 @@ export default function Onboarding() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch("/api/persona/consent", {
+      const res = await authedFetch("/api/persona/consent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
