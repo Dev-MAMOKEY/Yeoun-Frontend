@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // 비로그인 상태에서 접근을 막을 보호 경로
-const PROTECTED_PATHS = ["/", "/my", "/chat", "/create", "/onboarding"];
+// 스플래시("/")는 인증 상태와 무관하게 진입 가능하며, 페이지 내부에서 분기 라우팅한다
+const PROTECTED_PATHS = ["/my", "/chat", "/create", "/onboarding"];
 
 // 로그인 상태에서 접근 시 홈으로 보낼 인증 경로
 const AUTH_PATHS = ["/login", "/signup"];
