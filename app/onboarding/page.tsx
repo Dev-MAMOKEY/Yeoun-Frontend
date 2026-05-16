@@ -166,7 +166,11 @@ export default function Onboarding() {
           </div>
           {/* "예" 선택 시 안내 — 진행은 차단하지 않음 */}
           {refusal === "yes" && (
-            <p className="text-subtle text-[14px] font-medium leading-6 tracking-brand">
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-subtle text-[14px] font-medium leading-6 tracking-brand"
+            >
               고인의 뜻을 한 번 더 생각해 주셔서 감사해요. 신중하게 결정해 주세요
             </p>
           )}
@@ -205,7 +209,10 @@ export default function Onboarding() {
 
             {/* 약관 미동의 상태로 다음을 누른 경우의 안내 */}
             {consentError && (
-              <p className="text-foreground text-[14px] font-medium leading-6 tracking-brand">
+              <p
+                role="alert"
+                className="text-foreground text-[14px] font-medium leading-6 tracking-brand"
+              >
                 약관에 동의해야 진행할 수 있습니다
               </p>
             )}
