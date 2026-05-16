@@ -409,11 +409,13 @@ function InterviewStep() {
 
   function handleAnswer(i: number, val: string) {
     setAnswers((prev) => prev.map((a, idx) => (idx === i ? val : a)));
+    setError(null);
   }
 
   function handleSkip(i: number) {
     setSkipped((prev) => prev.map((s, idx) => (idx === i ? true : s)));
     setAnswers((prev) => prev.map((a, idx) => (idx === i ? "" : a)));
+    setError(null);
   }
 
   async function handleNext() {
@@ -423,6 +425,14 @@ function InterviewStep() {
     const payload: InterviewAnswerRequest[] = answers
       .map((answer, i) => ({ questionNumber: i + 1, answer: answer.trim() }))
       .filter((a) => a.answer.length > 0);
+
+    // 모든 문항이 비어 있거나 건너뛰기 상태인 경우 진행 차단
+    const hasAnyAnswer = payload.length > 0;
+    const hasAnySkip = skipped.some((s) => s);
+    if (!hasAnyAnswer && !hasAnySkip) {
+      setError("답변을 입력하거나 건너뛰기를 선택해 주세요");
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -460,6 +470,10 @@ function InterviewStep() {
           <p className="text-foreground text-[18px] font-semibold leading-6">아래의 질문에 답변해주세요</p>
         </div>
 
+        {error && (
+          <p className="text-[#c44] text-[13px] font-medium w-full pl-3">{error}</p>
+        )}
+
         {QUESTIONS.map((q, i) => (
           <div key={i} className="flex flex-col gap-[10px] items-start pt-[10px] w-[314px]">
             <div className="pl-3 w-full">
@@ -470,6 +484,7 @@ function InterviewStep() {
               onChange={(e) => handleAnswer(i, e.target.value)}
               placeholder="답변을 입력해주세요"
               disabled={skipped[i]}
+              maxLength={500}
               className={`px-5 py-[10px] rounded-card w-full text-[16px] tracking-brand placeholder:text-placeholder outline-none ${
                 skipped[i] ? "bg-disabled text-foreground" : "bg-surface text-foreground"
               }`}
@@ -483,10 +498,6 @@ function InterviewStep() {
           </div>
         ))}
       </div>
-
-      {error && (
-        <p className="text-[#c44] text-[13px] font-medium w-full pl-3">{error}</p>
-      )}
 
       <div className="flex flex-col items-start py-[14px] w-full">
         <PrimaryButton onClick={handleNext} active={!submitting}>
