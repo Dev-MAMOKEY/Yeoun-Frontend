@@ -15,7 +15,6 @@ export default function Signup() {
   const router = useRouter();
 
   const [form, setForm] = useState({
-    name: "",
     email: "",
     password: "",
     passwordConfirm: "",
@@ -91,14 +90,6 @@ export default function Signup() {
         onSubmit={handleSubmit}
         className="bg-white flex flex-col gap-[18px] items-center px-5 py-[30px] rounded-sheet w-full"
       >
-        <FormField
-          label="이름"
-          id="name"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          placeholder="이름을 입력해주세요"
-        />
         <FormField
           label="이메일"
           id="email"
