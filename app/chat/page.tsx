@@ -22,6 +22,16 @@ const BAR_MAX_HEIGHT = 62;
 const SLOW_RESPONSE_MS = 5_000;
 const TIMEOUT_RESPONSE_MS = 30_000;
 
+// 위기 안내 카드 쿨다운 (2분)
+const CRISIS_COOLDOWN_SEC = 120;
+
+function formatCooldown(sec: number) {
+  const safe = Math.max(0, sec);
+  const m = Math.floor(safe / 60);
+  const s = safe % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 function formatDuration(ms: number) {
   const total = Math.floor(ms / 1000);
   const m = Math.floor(total / 60);
@@ -83,6 +93,9 @@ export default function Chat() {
   const [responseState, setResponseState] = useState<ResponseState>("idle");
   const [toast, setToast] = useState<string | null>(null);
   const [crisisMessage, setCrisisMessage] = useState<string | null>(null);
+  // 위기 카드 노출 동안 "괜찮아요" 버튼 활성화까지 남은 초
+  const [crisisCooldownSec, setCrisisCooldownSec] =
+    useState<number>(CRISIS_COOLDOWN_SEC);
 
   // ── refs ──
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -211,6 +224,21 @@ export default function Chat() {
     video?.play().catch(() => {});
   }, [activeSlot, slotSrcs]);
 
+  // 위기 카드 노출 동안 매 초 쿨다운 감소 — 초기값은 메시지를 set 하는 시점에 함께 초기화
+  useEffect(() => {
+    if (!crisisMessage) return;
+    const id = window.setInterval(() => {
+      setCrisisCooldownSec((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(id);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [crisisMessage]);
+
   // ── 웨이브폼 애니메이션 ──
   function startWaveAnimation() {
     const analyser = analyserRef.current;
@@ -318,7 +346,8 @@ export default function Chat() {
         break;
       }
       case "crisis":
-        // 위기 키워드 감지 — 안내 카드 오버레이
+        // 위기 키워드 감지 — 안내 카드 오버레이 + 2분 쿨다운 초기화
+        setCrisisCooldownSec(CRISIS_COOLDOWN_SEC);
         setCrisisMessage(
           ev.data ||
             "많이 힘드신 것 같아요. 도움이 필요하시면 자살예방상담전화 109로 연락해 주세요.",
@@ -489,6 +518,8 @@ export default function Chat() {
   }
 
   function toggleRecording() {
+    // 위기 카드가 떠 있는 동안에는 추가 메시지 전송 차단
+    if (crisisMessage) return;
     if (isRecording) stopRecording();
     else startRecording();
   }
@@ -639,19 +670,79 @@ export default function Chat() {
 
       {/* 위기 안내 카드 오버레이 */}
       {crisisMessage && (
-        <div className="fixed inset-0 bg-[rgba(19,19,19,0.55)] z-50 flex items-center justify-center px-6">
-          <div className="w-full max-w-[340px] bg-white flex flex-col gap-4 items-center px-6 py-8 rounded-sheet">
-            <h2 className="text-foreground text-[18px] font-semibold tracking-brand text-center">
-              잠시 마음을 살펴주세요
-            </h2>
-            <p className="text-subtle text-[14px] font-medium leading-6 text-center whitespace-pre-line">
-              {crisisMessage}
-            </p>
+        <div className="fixed inset-0 bg-[rgba(19,19,19,0.55)] backdrop-blur-sm z-50 flex items-center justify-center px-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="crisis-title"
+            className="w-full max-w-[320px] bg-white flex flex-col gap-5 px-6 py-8 rounded-sheet"
+          >
+            <div className="flex flex-col gap-2">
+              <h2
+                id="crisis-title"
+                className="text-foreground text-[18px] font-semibold tracking-brand text-center"
+              >
+                지금 마음이 많이 무거우신가요?
+              </h2>
+              <p className="text-subtle text-[14px] leading-6 text-center">
+                이런 마음이 들때는
+                <br />
+                곁에 있는 사람과 함께 해주세요
+              </p>
+            </div>
+
+            <div className="bg-surface-soft rounded-card px-5 py-[20px] flex flex-col gap-4">
+              <h3 className="text-foreground text-[16px] font-semibold text-center">
+                위기 상담 연락처
+              </h3>
+              <div className="flex flex-col gap-3 text-center">
+                <div className="flex flex-col gap-1">
+                  <p className="text-foreground text-[14px] font-medium">
+                    자살예방 상담 전화
+                  </p>
+                  <p className="text-subtle text-[14px] leading-6">
+                    <a
+                      href="tel:1393"
+                      className="text-foreground font-semibold underline"
+                    >
+                      1393
+                    </a>{" "}
+                    (24시간)
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-foreground text-[14px] font-medium">
+                    정신건강 위기상담 전화
+                  </p>
+                  <p className="text-subtle text-[14px] leading-6">
+                    <a
+                      href="tel:1577-0199"
+                      className="text-foreground font-semibold underline"
+                    >
+                      1577-0199
+                    </a>{" "}
+                    (24시간)
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <button
-              onClick={() => setCrisisMessage(null)}
-              className="bg-muted flex items-center justify-center px-[30px] py-[12px] rounded-card w-full cursor-pointer"
+              type="button"
+              onClick={() => {
+                setCrisisMessage(null);
+                setCrisisCooldownSec(CRISIS_COOLDOWN_SEC);
+              }}
+              disabled={crisisCooldownSec > 0}
+              className={`flex items-center justify-center px-[30px] py-[12px] rounded-card w-full text-white text-[16px] font-medium tracking-brand transition ${
+                crisisCooldownSec > 0
+                  ? "bg-disabled cursor-not-allowed"
+                  : "bg-muted cursor-pointer"
+              }`}
             >
-              <span className="text-white text-[16px] font-medium tracking-brand">확인했어요</span>
+              {crisisCooldownSec > 0
+                ? `괜찮아요, 계속할게요 (${formatCooldown(crisisCooldownSec)})`
+                : "괜찮아요, 계속할게요"}
             </button>
           </div>
         </div>
