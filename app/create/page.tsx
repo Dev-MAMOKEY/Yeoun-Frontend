@@ -48,9 +48,9 @@ interface VoiceFile {
 
 // 지원하는 음성/영상 확장자 화이트리스트
 const VOICE_EXTENSIONS = ["mp4", "mov", "m4a", "mp3", "wav"] as const;
-// accept 속성 — 모바일/데스크톱 파일 선택기에 형식 힌트
+// accept 속성 — MIME 외 확장자 토큰도 포함해 빈/잘못된 MIME 환경에서 정상 파일이 가려지지 않게 한다
 const VOICE_ACCEPT =
-  "audio/mp4,audio/x-m4a,audio/mpeg,audio/wav,video/mp4,video/quicktime";
+  "audio/mp4,audio/x-m4a,audio/mpeg,audio/wav,video/mp4,video/quicktime,.mp4,.mov,.m4a,.mp3,.wav";
 // 업로드 가능한 최대 파일 크기 (500MB)
 const VOICE_MAX_SIZE = 500 * 1024 * 1024;
 // 음성 자료 총 길이 최소 요구치 (초)
@@ -346,6 +346,12 @@ function VoiceStep() {
     setFiles((prev) => [...prev, { id, file, duration: null }]);
     setError(null);
     const duration = await measureDuration(file);
+    if (duration === null) {
+      // 측정 실패 — 재생 가능한 음성으로 인식되지 않음. 파일 제거 + 안내
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+      setError("재생 가능한 음성을 확인하지 못했어요. 다른 파일을 선택해 주세요");
+      return;
+    }
     setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, duration } : f)));
   }
 
@@ -414,7 +420,7 @@ function VoiceStep() {
             </div>
             <div className="flex flex-col gap-1">
               <p className="text-foreground text-[16px] font-semibold tracking-brand">음성 파일 업로드</p>
-              <p className="text-subtle text-[12px] font-medium tracking-brand">mp4, mov, m4a, wav 형식 가능해요</p>
+              <p className="text-subtle text-[12px] font-medium tracking-brand">mp4, mov, m4a, mp3, wav 형식 가능해요</p>
             </div>
             <input type="file" accept={VOICE_ACCEPT} className="sr-only" onChange={handleFileChange} />
           </label>
