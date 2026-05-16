@@ -39,10 +39,45 @@ const QUESTIONS = [
   "지금 다시 만난다면 가장 듣고 싶은 한 마디는?",
 ];
 
-// 업로드 음성 파일 항목
+// 업로드 음성 파일 항목 (duration은 비동기 측정 — 측정 전 null)
 interface VoiceFile {
   id: string;
   file: File;
+  duration: number | null;
+}
+
+// 지원하는 음성/영상 확장자 화이트리스트
+const VOICE_EXTENSIONS = ["mp4", "mov", "m4a", "mp3", "wav"] as const;
+// accept 속성 — MIME 외 확장자 토큰도 포함해 빈/잘못된 MIME 환경에서 정상 파일이 가려지지 않게 한다
+const VOICE_ACCEPT =
+  "audio/mp4,audio/x-m4a,audio/mpeg,audio/wav,video/mp4,video/quicktime,.mp4,.mov,.m4a,.mp3,.wav";
+// 업로드 가능한 최대 파일 크기 (500MB)
+const VOICE_MAX_SIZE = 500 * 1024 * 1024;
+// 음성 자료 총 길이 최소 요구치 (초)
+const VOICE_MIN_TOTAL_DURATION = 60;
+
+// 파일의 재생 시간을 비동기로 측정 (실패 시 null)
+function measureDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const media = document.createElement("video");
+    media.preload = "metadata";
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      media.removeAttribute("src");
+      media.load();
+    };
+    media.onloadedmetadata = () => {
+      const d = Number.isFinite(media.duration) ? media.duration : null;
+      cleanup();
+      resolve(d);
+    };
+    media.onerror = () => {
+      cleanup();
+      resolve(null);
+    };
+    media.src = url;
+  });
 }
 
 // 업로드 실패 공통 안내 문구
@@ -318,13 +353,42 @@ function VoiceStep() {
   // 카드별 pause 핸들러 — 한 번에 하나만 재생되도록 조정
   const pauseHandlersRef = useRef<Map<string, () => void>>(new Map());
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // 측정된 duration을 모두 합산 (측정 전 항목은 0으로 취급)
+  const totalDuration = files.reduce((sum, f) => sum + (f.duration ?? 0), 0);
+  // 측정 완료 + 총합 1분 이상이어야 다음 진행 가능
+  const allMeasured = files.every((f) => f.duration !== null);
+  const meetsMinDuration = totalDuration >= VOICE_MIN_TOTAL_DURATION;
+  const canProceed = files.length >= 1 && allMeasured && meetsMinDuration;
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) {
-      setFiles((prev) => [...prev, { id: makeId(), file }]);
-      setError(null);
-    }
     e.target.value = "";
+    if (!file) return;
+
+    // 확장자 화이트리스트 검증 (대소문자 무시)
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!VOICE_EXTENSIONS.includes(ext as (typeof VOICE_EXTENSIONS)[number])) {
+      setError("지원하지 않는 파일 형식입니다");
+      return;
+    }
+    // 500MB 초과 차단
+    if (file.size > VOICE_MAX_SIZE) {
+      setError("파일 크기가 너무 큽니다 (최대 500MB)");
+      return;
+    }
+
+    // 우선 duration null 상태로 추가 후 비동기로 측정 결과 반영
+    const id = makeId();
+    setFiles((prev) => [...prev, { id, file, duration: null }]);
+    setError(null);
+    const duration = await measureDuration(file);
+    if (duration === null) {
+      // 측정 실패 — 재생 가능한 음성으로 인식되지 않음. 파일 제거 + 안내
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+      setError("재생 가능한 음성을 확인하지 못했어요. 다른 파일을 선택해 주세요");
+      return;
+    }
+    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, duration } : f)));
   }
 
   const registerPause = useCallback((id: string, pause: () => void) => {
@@ -342,10 +406,7 @@ function VoiceStep() {
 
   async function handleNext() {
     if (submitting) return;
-    if (files.length === 0) {
-      setError("고인의 음성 파일을 업로드해주세요.");
-      return;
-    }
+    if (!canProceed) return;
     if (!persona) return;
 
     setSubmitting(true);
@@ -395,9 +456,9 @@ function VoiceStep() {
             </div>
             <div className="flex flex-col gap-1">
               <p className="text-foreground text-[16px] font-semibold tracking-brand">음성 파일 업로드</p>
-              <p className="text-subtle text-[12px] font-medium tracking-brand">mp4, mov, m4a, wav 형식 가능해요</p>
+              <p className="text-subtle text-[12px] font-medium tracking-brand">mp4, mov, m4a, mp3, wav 형식 가능해요</p>
             </div>
-            <input type="file" accept="audio/*,video/*" className="sr-only" onChange={handleFileChange} />
+            <input type="file" accept={VOICE_ACCEPT} className="sr-only" onChange={handleFileChange} />
           </label>
         ) : (
           <>
@@ -414,9 +475,16 @@ function VoiceStep() {
             <label className="bg-surface-strong flex flex-col gap-[6px] items-center justify-center p-4 rounded-card w-full cursor-pointer">
               <AddIcon color="var(--color-subtle)" />
               <span className="text-subtle text-[14px] font-semibold tracking-brand">음성 파일 추가 업로드</span>
-              <input type="file" accept="audio/*,video/*" className="sr-only" onChange={handleFileChange} />
+              <input type="file" accept={VOICE_ACCEPT} className="sr-only" onChange={handleFileChange} />
             </label>
           </>
+        )}
+
+        {/* 총 길이 미달 시 카드 영역 바로 아래 안내 */}
+        {files.length >= 1 && allMeasured && !meetsMinDuration && (
+          <p className="text-[#c44] text-[13px] font-medium w-full pl-3">
+            음성 자료가 1분 미만입니다. 파일을 추가해 주세요
+          </p>
         )}
       </div>
 
@@ -425,7 +493,7 @@ function VoiceStep() {
       )}
 
       <div className="flex flex-col items-start py-[14px] w-full">
-        <PrimaryButton onClick={handleNext} active={!submitting}>
+        <PrimaryButton onClick={handleNext} active={!submitting && canProceed}>
           {submitting ? "업로드 중..." : "다음"}
         </PrimaryButton>
       </div>
