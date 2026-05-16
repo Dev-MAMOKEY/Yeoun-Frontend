@@ -40,6 +40,35 @@ export default function My() {
 
   // 로그아웃 확인 다이얼로그 상태
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const logoutDialogRef = useRef<HTMLDivElement | null>(null);
+  // 다이얼로그가 열려 있는 동안 초기 focus / ESC 닫기 / Tab 가두기를 적용한다
+  useEffect(() => {
+    if (!showLogoutDialog) return;
+    const node = logoutDialogRef.current;
+    const focusables = node?.querySelectorAll<HTMLElement>("button:not([disabled])");
+    focusables?.[0]?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowLogoutDialog(false);
+        return;
+      }
+      if (e.key !== "Tab" || !focusables || focusables.length === 0) return;
+      const list = Array.from(focusables);
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showLogoutDialog]);
 
   // 안내 토스트 (비밀번호 변경 등 미구현 기능 안내용)
   const [toast, setToast] = useState<string | null>(null);
@@ -276,6 +305,7 @@ export default function My() {
           aria-label="로그아웃 확인"
         >
           <div
+            ref={logoutDialogRef}
             className="bg-white rounded-sheet px-6 py-6 max-w-[320px] w-full flex flex-col gap-5"
             onClick={(e) => e.stopPropagation()}
           >
