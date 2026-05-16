@@ -120,6 +120,8 @@ export default function Chat() {
   const crisisActiveRef = useRef(false);
   // 쿨다운 만료 시각(epoch ms) — 백그라운드 탭 throttling에도 정확한 남은 시간을 계산하기 위함
   const crisisCooldownEndRef = useRef<number>(0);
+  // 위기 카드 다이얼로그 컨테이너 — 초기 focus / Tab 트랩 / ESC 닫기에 사용
+  const crisisDialogRef = useRef<HTMLDivElement | null>(null);
   // idle 더블 버퍼용 video 엘리먼트 ref
   const idleARef = useRef<HTMLVideoElement>(null);
   const idleBRef = useRef<HTMLVideoElement>(null);
@@ -241,6 +243,48 @@ export default function Chat() {
     }, 1000);
     return () => window.clearInterval(id);
   }, [crisisMessage]);
+
+  // 위기 카드 a11y — 초기 focus / Tab 트랩 / 쿨다운 만료 후 ESC 닫기
+  useEffect(() => {
+    if (!crisisMessage) return;
+    const node = crisisDialogRef.current;
+    // 쿨다운 동안에는 버튼이 disabled이므로 컨테이너에 직접 focus
+    node?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && crisisCooldownSec === 0) {
+        e.preventDefault();
+        crisisActiveRef.current = false;
+        crisisCooldownEndRef.current = 0;
+        setCrisisMessage(null);
+        setCrisisCooldownSec(CRISIS_COOLDOWN_SEC);
+        return;
+      }
+      if (e.key !== "Tab" || !node) return;
+      const focusables = node.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) {
+        // 포커스 가능한 요소가 없으면 컨테이너에 그대로 묶어 둠
+        e.preventDefault();
+        node.focus();
+        return;
+      }
+      const list = Array.from(focusables);
+      const first = list[0];
+      const last = list[list.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === node)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [crisisMessage, crisisCooldownSec]);
 
   // ── 웨이브폼 애니메이션 ──
   function startWaveAnimation() {
@@ -690,10 +734,12 @@ export default function Chat() {
       {crisisMessage && (
         <div className="fixed inset-0 bg-[rgba(19,19,19,0.55)] backdrop-blur-sm z-50 flex items-center justify-center px-6">
           <div
+            ref={crisisDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="crisis-title"
-            className="w-full max-w-[320px] bg-white flex flex-col gap-5 px-6 py-8 rounded-sheet"
+            tabIndex={-1}
+            className="w-full max-w-[320px] bg-white flex flex-col gap-5 px-6 py-8 rounded-sheet outline-none"
           >
             <div className="flex flex-col gap-2">
               <h2
