@@ -9,15 +9,20 @@ import { usePersonaStore } from "@/store/personaStore";
 import { useSessionStore } from "@/store/sessionStore";
 import type { PersonaSummary, RsData, UserMeResponse } from "@/lib/types";
 
-// KST(UTC+9) 기준 'YYYY.MM.DD' 포맷으로 변환
+// KST(Asia/Seoul) 기준 'YYYY.MM.DD' 포맷으로 변환
+// Intl.DateTimeFormat을 사용해 서버 응답의 오프셋 포함/UTC Z 형식 모두 안전하게 처리
 function formatKstDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-  const yyyy = kst.getUTCFullYear();
-  const mm = String(kst.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(kst.getUTCDate()).padStart(2, "0");
-  return `${yyyy}.${mm}.${dd}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const lookup: Record<string, string> = {};
+  for (const part of parts) lookup[part.type] = part.value;
+  return `${lookup.year}.${lookup.month}.${lookup.day}`;
 }
 
 export default function My() {
