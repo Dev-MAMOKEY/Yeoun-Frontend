@@ -39,11 +39,11 @@ export default function Onboarding() {
           <span className="text-[24px] font-bold text-black tracking-brand">Yeoun</span>
         </div>
 
-        <div className="flex-1 flex items-center justify-center py-5">
-          <div className="bg-white flex flex-col gap-[30px] items-start justify-center px-5 py-[30px] rounded-sheet w-full">
+        <div className="pt-5 w-full">
+          <div className="bg-white flex flex-col gap-[30px] items-start px-5 py-[30px] rounded-sheet w-full">
             <MicIcon size={24} />
 
-            <div className="flex flex-col gap-[4px] items-start text-foreground text-[18px] font-semibold tracking-brand">
+            <div className="flex flex-col gap-1 items-start text-foreground text-[18px] font-semibold tracking-brand">
               <p>페르소나를 만들려면</p>
               <p>고인의 음성 자료가 1분이상 필요해요</p>
             </div>
