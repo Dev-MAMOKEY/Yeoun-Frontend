@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../components/BottomNav";
 import { HeadphoneIcon } from "../components/icons";
@@ -521,12 +522,34 @@ export default function Chat() {
         ? "답변을 준비하고 있어요"
         : "듣고 있어요";
 
+  // 페르소나가 준비 중(draft 등)이면 idle 영상이 비어 안내 박스 노출
+  const personaNotReady = !!persona && persona.status !== "ready";
+
   return (
     <div className="min-h-screen bg-background flex justify-center">
       <div className="w-full max-w-app flex flex-col gap-2 items-start pt-16 pb-[120px] relative">
         <div className="flex items-center px-6 w-full shrink-0">
           <span className="text-[24px] font-bold text-black tracking-brand">Yeoun</span>
         </div>
+
+        {personaNotReady && (
+          <div className="px-6 w-full shrink-0">
+            <div className="bg-surface-soft rounded-card px-4 py-3 flex flex-col gap-1">
+              <p className="text-foreground text-[14px] font-semibold tracking-brand">
+                아직 페르소나 준비 중이에요
+              </p>
+              <p className="text-subtle text-[13px] leading-5">
+                준비가 끝나면 이 화면에서 대화를 시작할 수 있어요.
+              </p>
+              <Link
+                href="/create"
+                className="self-start text-accent text-[13px] font-semibold underline mt-1"
+              >
+                페르소나 만들기로 돌아가기
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-start overflow-hidden pt-[6px] pb-4 shrink-0 w-full">
           <div className="relative h-[431px] w-full overflow-hidden">
@@ -600,20 +623,18 @@ export default function Chat() {
         <div className="flex flex-col items-center justify-center gap-2 px-6 w-full shrink-0">
           <button
             onClick={toggleRecording}
-            className={`bg-[#775a19] flex items-center p-3 rounded-[12px] cursor-pointer transition ${
+            className={`bg-[#775a19] flex items-center justify-center size-[60px] rounded-[12px] cursor-pointer transition ${
               isRecording ? "ring-4 ring-[#775a19]/30 animate-pulse" : ""
             }`}
             aria-label={isRecording ? "녹음 정지" : "녹음 시작"}
           >
-            {isRecording ? (
-              <div className="size-9 flex items-center justify-center">
+            <div className="size-9 flex items-center justify-center">
+              {isRecording ? (
                 <div className="size-5 bg-white rounded-[3px]" />
-              </div>
-            ) : (
-              <div className="size-9 flex items-center justify-center">
+              ) : (
                 <div className="size-5 bg-white rounded-full" />
-              </div>
-            )}
+              )}
+            </div>
           </button>
 
           {error && (
