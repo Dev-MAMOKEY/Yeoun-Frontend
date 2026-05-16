@@ -25,6 +25,25 @@ export default function Onboarding() {
   const [showSheet, setShowSheet] = useState(false);
   const [refusal, setRefusal] = useState<"yes" | "no" | null>(null);
   const [agreed, setAgreed] = useState(false);
+  const [consentError, setConsentError] = useState(false);
+
+  // 약관 동의 시 미동의 에러 자동 해제
+  const handleToggleAgreed = () => {
+    setAgreed((prev) => {
+      const next = !prev;
+      if (next) setConsentError(false);
+      return next;
+    });
+  };
+
+  // 다음 버튼 — 약관 미동의 시 에러 표시, 동의 시 페르소나 생성 플로우로 이동
+  const handleNext = () => {
+    if (!agreed) {
+      setConsentError(true);
+      return;
+    }
+    router.push("/create");
+  };
 
   // 페르소나 보유 시 대화 화면으로 리다이렉트
   useEffect(() => {
@@ -145,6 +164,12 @@ export default function Onboarding() {
               </button>
             ))}
           </div>
+          {/* "예" 선택 시 안내 — 진행은 차단하지 않음 */}
+          {refusal === "yes" && (
+            <p className="text-subtle text-[14px] font-medium leading-6 tracking-brand">
+              고인의 뜻을 한 번 더 생각해 주셔서 감사해요. 신중하게 결정해 주세요
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-[14px] items-start w-full">
@@ -170,18 +195,25 @@ export default function Onboarding() {
             </div>
 
             <button
-              onClick={() => setAgreed(!agreed)}
+              onClick={handleToggleAgreed}
               className={`flex items-center justify-center px-[30px] py-[10px] rounded-card w-full cursor-pointer transition-colors ${
                 agreed ? "bg-muted" : "bg-placeholder"
               }`}
             >
               <span className="text-white text-[16px] font-medium tracking-brand">네, 동의합니다</span>
             </button>
+
+            {/* 약관 미동의 상태로 다음을 누른 경우의 안내 */}
+            {consentError && (
+              <p className="text-foreground text-[14px] font-medium leading-6 tracking-brand">
+                약관에 동의해야 진행할 수 있습니다
+              </p>
+            )}
           </div>
         </div>
 
-        {/* 약관 동의 시 페르소나 생성 플로우로 이동 */}
-        <PrimaryButton active={agreed} onClick={() => agreed && router.push("/create")}>
+        {/* 약관 동의 시 페르소나 생성 플로우로 이동, 미동의 시 에러 노출 */}
+        <PrimaryButton active={agreed} onClick={handleNext}>
           다음
         </PrimaryButton>
       </div>
