@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "../components/BottomNav";
-import { ArrowRightIcon } from "../components/icons";
 import { useAuthStore } from "@/store/authStore";
 import { usePersonaStore } from "@/store/personaStore";
 import { useSessionStore } from "@/store/sessionStore";
@@ -18,6 +17,38 @@ export default function My() {
   const setPersona = usePersonaStore((s) => s.setPersona);
   const clearPersona = usePersonaStore((s) => s.clearPersona);
   const clearSession = useSessionStore((s) => s.clearSession);
+
+  // 로그아웃 확인 다이얼로그 상태
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const logoutDialogRef = useRef<HTMLDivElement | null>(null);
+  // 다이얼로그가 열려 있는 동안 초기 focus / ESC 닫기 / Tab 가두기를 적용한다
+  useEffect(() => {
+    if (!showLogoutDialog) return;
+    const node = logoutDialogRef.current;
+    const focusables = node?.querySelectorAll<HTMLElement>("button:not([disabled])");
+    focusables?.[0]?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowLogoutDialog(false);
+        return;
+      }
+      if (e.key !== "Tab" || !focusables || focusables.length === 0) return;
+      const list = Array.from(focusables);
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showLogoutDialog]);
 
   // 계정 삭제용 비밀번호 입력 시트 상태
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
@@ -38,7 +69,7 @@ export default function My() {
         const me = json.data;
         setUser({ userId: me.id, email: me.email });
 
-        // 보유한 페르소나가 있으면 store에 반영
+        // 보유한 페르소나가 있으면 store에 반영 (다른 화면에서 사용)
         const first = me.personas[0];
         if (first) {
           setPersona({
@@ -139,16 +170,12 @@ export default function My() {
                 </span>
               </div>
             </div>
-
-            <button className="flex gap-2 items-center justify-center px-3 w-full cursor-pointer">
-              <span className="flex-1 text-foreground text-[16px] font-semibold tracking-brand text-left">비밀번호 변경하기</span>
-              <ArrowRightIcon color="var(--color-foreground)" />
-            </button>
           </div>
         </div>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutDialog(true)}
+          disabled={loggingOut}
           className="bg-surface-muted flex items-center justify-center px-5 py-[13px] rounded-card w-[346px] cursor-pointer"
         >
           <span className="text-muted text-[16px] font-medium tracking-brand">
@@ -170,6 +197,47 @@ export default function My() {
         <BottomNav />
       </div>
 
+      {/* 로그아웃 확인 다이얼로그 */}
+      {showLogoutDialog && (
+        <div
+          className="fixed inset-0 bg-[rgba(19,19,19,0.3)] z-40 flex items-center justify-center px-6"
+          onClick={() => setShowLogoutDialog(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="로그아웃 확인"
+        >
+          <div
+            ref={logoutDialogRef}
+            className="bg-white rounded-sheet px-6 py-6 max-w-[320px] w-full flex flex-col gap-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-foreground text-[18px] font-semibold tracking-brand text-center">
+              로그아웃하시겠습니까?
+            </h2>
+            <div className="flex gap-[10px] w-full">
+              <button
+                onClick={() => setShowLogoutDialog(false)}
+                className="flex-1 bg-surface-muted flex items-center justify-center px-5 py-[13px] rounded-card cursor-pointer"
+              >
+                <span className="text-muted text-[16px] font-medium tracking-brand">취소</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowLogoutDialog(false);
+                  handleLogout();
+                }}
+                disabled={loggingOut}
+                className="flex-1 bg-foreground flex items-center justify-center px-5 py-[13px] rounded-card cursor-pointer"
+              >
+                <span className="text-white text-[16px] font-medium tracking-brand">
+                  {loggingOut ? "로그아웃 중..." : "로그아웃"}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 계정 삭제 — 비밀번호 확인 시트 */}
       {showDeleteSheet && (
         <div
@@ -186,7 +254,8 @@ export default function My() {
 
             <div className="pt-[9px] flex flex-col gap-1">
               <h2 className="text-foreground text-[18px] font-semibold tracking-brand">정말 계정을 삭제하시겠어요?</h2>
-              <p className="text-subtle text-[14px] font-medium">삭제 후에는 되돌릴 수 없어요. 비밀번호를 입력해주세요.</p>
+              <p className="text-subtle text-[14px] font-medium">계정과 모든 데이터가 즉시 영구 삭제되며 복구할 수 없습니다</p>
+              <p className="text-subtle text-[14px] font-medium">비밀번호를 입력해주세요</p>
             </div>
 
             <input
