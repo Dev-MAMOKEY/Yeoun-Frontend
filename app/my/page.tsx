@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PageLayout } from "../components/ui/PageLayout";
 import { BottomNav } from "../components/BottomNav";
 import { useAuthStore } from "@/store/authStore";
 import { usePersonaStore } from "@/store/personaStore";
@@ -150,8 +151,8 @@ export default function My() {
 
   return (
     <div className="min-h-screen bg-background flex justify-center">
-      <div className="w-full max-w-app flex flex-col gap-[26px] items-center pt-16 pb-[130px] px-6">
-        <div className="flex items-center w-full px-6">
+      <PageLayout className="flex flex-col gap-2 items-start pt-8 pb-8 px-6">
+        <div className="flex items-center w-full">
           <span className="text-[24px] font-bold text-black tracking-brand">Yeoun</span>
         </div>
 
@@ -195,7 +196,7 @@ export default function My() {
         </button>
 
         <BottomNav />
-      </div>
+      </PageLayout>
 
       {/* 로그아웃 확인 다이얼로그 */}
       {showLogoutDialog && (
